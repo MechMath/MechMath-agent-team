@@ -1,0 +1,39 @@
+# Shared runtime data managed outside git.
+data/raw_sources/
+data/inbox/
+data/tmp/
+data/workspace/*/lemmas*
+data/workspace/*/logs*
+data/workspace/*/queries*
+data/workspace/*/refinement*
+data/workspace/*/sketch*
+data/workspace/*/review*
+data/workspace/*/recovery*
+data/workspace/*/counterexample_search*
+
+# Python bytecode and build artifacts.
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Local environments and secrets.
+.env
+.env.*
+!**/.env.example
+.venv/
+venv/
+
+# Logs and generated TeX artifacts.
+*.log
+*.aux
+!cli.log
+
+# Local tool state.
+.claude/settings.json
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+trashbin/
+templateproject-init-backups

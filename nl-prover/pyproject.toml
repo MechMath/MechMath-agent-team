@@ -1,0 +1,18 @@
+[project]
+name = "nl-prover"
+version = "0.1.0"
+description = "Natural Language Prover (NL-Prover) — multi-agent informal mathematical proof harness"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.42.0",
+    "sympy>=1.13",
+    "google-genai>=1.0.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.2.2",
+]
+
+# NL-Prover ships no importable package: the deterministic tooling lives in
+# `cli_tools/` and is invoked directly, e.g. `uv run python cli_tools/<tool>.py`.
+[tool.uv]
+package = false

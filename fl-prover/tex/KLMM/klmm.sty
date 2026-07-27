@@ -1,0 +1,271 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{KLMM/klmm}[2026/06/04 Unified KLMM Preprint Style with Math Environments]
+
+% ==========================================
+% 1. 基础与工具宏包加载 (统一使用 \RequirePackage)
+% ==========================================
+\RequirePackage[T1]{fontenc}       % 字体编码
+\RequirePackage{tgpagella}         % 文本字体
+\RequirePackage{mathpazo}          % 数学与文本字体
+\RequirePackage{inconsolata}       % 等宽字体 (tt font)
+
+\RequirePackage{amsmath,amssymb,amsthm} % 数学核心宏包与定理环境
+\RequirePackage{array,url}         % 矩阵、表格工具与URL链接
+\RequirePackage{booktabs,makecell} % 高级表格三线表支持
+\RequirePackage{graphicx}          % 插图与Logo支持
+\RequirePackage{eso-pic}           % 背景/页面水印支持
+\RequirePackage{caption}           % 图表标题控制
+\RequirePackage{etoolbox}          % 宏补丁工具，用于可选算法环境微调
+
+\captionsetup{font=small}
+
+% ==========================================
+% 2. 页面布局与几何维度设置 (整合 geometry)
+% ==========================================
+\RequirePackage[margin=1in]{geometry} % 统一设置 1 英寸边距
+\setlength{\headheight}{13.6pt}       % 响应 fancyhdr 的页眉高度要求
+\addtolength{\headsep}{0.25in}         % 页眉与正文间距
+\marginparwidth 0.07 true in           % 边注宽度
+
+\renewcommand{\topfraction}{0.95}   % 允许图片几乎占满全页
+\renewcommand{\textfraction}{0.05}  % 允许文字极少
+\widowpenalty=10000
+\clubpenalty=10000
+\flushbottom
+\sloppy
+
+% 禁用目录生成以节省空间
+\def\addcontentsline#1#2#3{}
+
+% ==========================================
+% 3. 参考文献配置 (natbib)
+% ==========================================
+\RequirePackage[sort&compress]{natbib}
+\setcitestyle{numbers,square,citesep={,}}
+
+% ==========================================
+% 4. 定理环境与自定义数学命令
+% ==========================================
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{example}[theorem]{Example}
+\newtheorem*{theoremstar}{Theorem}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+
+% ==========================================
+% 5. 超链接配置 (通常在宏包最后加载以防冲突)
+% ==========================================
+\RequirePackage[hidelinks]{hyperref}
+
+% ==========================================
+% 6. 页眉页脚设置 (fancyhdr)
+% ==========================================
+\RequirePackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{1pt}
+\fancyhead{}
+\lhead{Key Laboratory of Mathematics Mechanization}
+\rhead{MechMath Agent Team}
+
+% ==========================================
+% 7. 标题与作者栏设置 (\maketitle 优化)
+% ==========================================
+\newcounter{affilcount}             % 用于单位自动计数 (1, 2, 3...)
+\newcounter{equalcontrib@printed}   % 用于确保页脚的 Equal contribution 只打印一次
+\newcommand{\current@has@affil}{0}  % 状态标志：0表示当前作者无单位，1表示有单位
+
+\def\maketitle{\par
+\begingroup
+   \def\thefootnote{\fnsymbol{footnote}}%
+   \def\@makefnmark{\hbox to 0pt{$^{\@thefnmark}$\hss}}%
+   \long\def\@makefntext##1{\parindent 1em\noindent
+                            \hbox to1.8em{\hss $\m@th ^{\@thefnmark}$}##1}%
+   \@maketitle
+   \@thanks
+\endgroup
+\thispagestyle{fancy} % 第一页强制应用 fancy 页眉
+\setcounter{footnote}{0}%
+\let\maketitle\relax \let\@maketitle\relax
+\gdef\@thanks{}\gdef\@author{}\gdef\@title{}%
+}
+
+\def\@maketitle{%
+  \vbox{\hsize\textwidth
+    \noindent{\LARGE\bfseries \@title \par}
+    \vskip 0.25in
+    \noindent{\large\linespread{1.3}\selectfont
+      \raggedright
+
+      \renewcommand{\and}{\def\current@has@affil{0}\unskip\unskip,\hspace{0.5em}\ignorespaces}%
+      \def\@makefnmark{\@textsuperscript{\normalfont\@thefnmark}}%
+
+      \def\institution##1{%
+        \stepcounter{affilcount}%
+        \textsuperscript{\theaffilcount}%
+        \edef\temp@thanks{\noexpand\begingroup\noexpand\def\noexpand\@thefnmark{\theaffilcount}\noexpand\@footnotetext{\unexpanded{##1}}\noexpand\endgroup}%
+        \expandafter\g@addto@macro\expandafter\@thanks\expandafter{\temp@thanks}%
+        \def\current@has@affil{1}%
+      }%
+
+      \def\instref##1{%
+        \textsuperscript{##1}%
+        \def\current@has@affil{1}%
+      }%
+
+      \def\equalcontrib{%
+        \ifnum\current@has@affil=1 \textsuperscript{,}\fi
+        \textsuperscript{*}%
+        \ifnum\value{equalcontrib@printed}=0
+          \g@addto@macro\@thanks{\begingroup\def\@thefnmark{*}\@footnotetext{Equal contribution.}\endgroup}%
+          \setcounter{equalcontrib@printed}{1}%
+        \fi
+      }%
+      \def\current@has@affil{0}%
+      \@author\par
+      \vskip 0.1in
+      {\normalsize\em \@date \par}
+    }%
+    \vskip 0.3in minus 0.1in
+  }%
+}
+
+% ==========================================
+% 8. 摘要与字号微调
+% ==========================================
+\renewenvironment{abstract}{%
+  \vskip.075in\centerline{\large\bf Abstract}\vspace{0.5ex}\begin{quote}%
+}{%
+  \par\end{quote}\vskip 1ex%
+}
+
+% 针对窄列微调行距与字号
+\def\normalsize{\@setsize\normalsize{11pt}\xpt\@xpt}
+\def\small{\@setsize\small{10pt}\ixpt\@ixpt}
+\def\footnotesize{\@setsize\footnotesize{10pt}\ixpt\@ixpt}
+\def\scriptsize{\@setsize\scriptsize{8pt}\viipt\@viipt}
+\def\tiny{\@setsize\tiny{7pt}\vipt\@vipt}
+\def\large{\@setsize\large{14pt}\xiipt\@xiipt}
+\def\Large{\@setsize\Large{16pt}\xivpt\@xivpt}
+\def\LARGE{\@setsize\LARGE{20pt}\xviipt\@xviipt}
+\def\huge{\@setsize\huge{23pt}\xxpt\@xxpt}
+\def\Huge{\@setsize\Huge{28pt}\xxvpt\@xxvpt}
+
+% ==========================================
+% 9. 标题间距与格式微调 (Section Headings)
+% ==========================================
+\def\section{\@startsection {section}{1}{\z@}{-2.0ex plus
+    -0.5ex minus -.2ex}{1.5ex plus 0.3ex minus0.2ex}{\large\bf\raggedright}}
+
+\def\subsection{\@startsection{subsection}{2}{\z@}{-1.8ex plus
+    -0.5ex minus -.2ex}{0.8ex plus .2ex}{\normalsize\bf\raggedright}}
+
+\def\subsubsection{\@startsection{subsubsection}{3}{\z@}{-1.5ex
+    plus -0.5ex minus -.2ex}{0.5ex plus .2ex}{\normalsize\bf\itshape\raggedright}}
+
+\def\paragraph{\@startsection{paragraph}{4}{\z@}{1.5ex plus
+    0.5ex minus .2ex}{-1em}{\normalsize\bf}}
+
+\def\subparagraph{\@startsection{subparagraph}{5}{\z@}{1.5ex plus
+    0.5ex minus .2ex}{-1em}{\normalsize\it}}
+
+\def\subsubsubsection{\vskip 5pt{\noindent\normalsize\raggedright}}
+
+% ==========================================
+% 10. 脚注、段落与列表间距控制
+% ==========================================
+\footnotesep 6.65pt
+\skip\footins 9pt plus 4pt minus 2pt
+\def\footnoterule{\kern-3pt \hrule width 12pc \kern 2.6pt }
+\setcounter{footnote}{0}
+
+\parindent 0pt
+\parskip .5pc
+
+\topsep 4pt plus 1pt minus 2pt
+\partopsep 1pt plus 0.5pt minus 0.5pt
+\itemsep 2pt plus 1pt minus 0.5pt
+\parsep 2pt plus 1pt minus 0.5pt
+
+\leftmargin3pc
+\leftmargini\leftmargin
+\leftmarginii 2em
+\leftmarginiii 1.5em
+\leftmarginiv 1.0em
+\leftmarginv .5em
+
+\def\@listi{\leftmargin\leftmargini}
+\def\@listii{\leftmargin\leftmarginii
+   \labelwidth\leftmarginii\advance\labelwidth-\labelsep
+   \topsep 2pt plus 1pt minus 0.5pt
+   \parsep 1pt plus 0.5pt minus 0.5pt
+   \itemsep \parsep}
+\def\@listiii{\leftmargin\leftmarginiii
+    \labelwidth\leftmarginiii\advance\labelwidth-\labelsep
+    \topsep 1pt plus 0.5pt minus 0.5pt
+    \parsep \z@ \partopsep 0.5pt plus 0pt minus 0.5pt
+    \itemsep \topsep}
+\def\@listiv{\leftmargin\leftmarginiv\labelwidth\leftmarginiv\advance\labelwidth-\labelsep}
+\def\@listv{\leftmargin\leftmarginv\labelwidth\leftmarginv\advance\labelwidth-\labelsep}
+\def\@listvi{\leftmargin\leftmarginvi\labelwidth\leftmarginvi\advance\labelwidth-\labelsep}
+
+\abovedisplayskip 7pt plus2pt minus5pt
+\belowdisplayskip \abovedisplayskip
+\abovedisplayshortskip 0pt plus3pt
+\belowdisplayshortskip 4pt plus3pt minus3pt
+
+
+
+\newif\ifklmm@loadalg\klmm@loadalgfalse
+\DeclareOption{alg}{\klmm@loadalgtrue}
+
+\newif\ifklmm@loadtikz\klmm@loadtikzfalse
+\DeclareOption{tikz}{\klmm@loadtikztrue}
+
+\ProcessOptions\relax
+% ==========================================
+% 11. 可选算法环境配置 (基于现代化的 algorithmicx/algpseudocode)
+% ==========================================
+\ifklmm@loadalg
+  \RequirePackage{algorithm}
+  \RequirePackage{algpseudocode}
+
+  \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+  \renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+  \captionsetup[algorithm]{%
+    font=normalsize,
+    labelfont=bf,
+    labelsep=colon,
+    position=top,
+    skip=0.45em
+  }
+
+  \expandafter\patchcmd\csname\string\algorithmic\endcsname{\itemsep\z@}{\itemsep=0.5ex}{}{}
+  \renewcommand{\alglinenumber}[1]{\footnotesize #1.}
+
+\fi
+
+% ==========================================
+% 12. 可选画图环境配置 (基于 tikz)
+% ==========================================
+\ifklmm@loadtikz
+  \RequirePackage{tikz}
+  \usetikzlibrary{arrows.meta, positioning, quotes}
+
+  \RequirePackage{xcolor}
+  \definecolor{yellow}{HTML}{EFD55E}
+  \definecolor{green}{HTML}{89D0C2}
+  \definecolor{red}{HTML}{F77A82}
+  \definecolor{purple}{HTML}{B7AACB}
+  \definecolor{blue}{HTML}{077ABD}
+
+\fi
+
+\endinput

@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run python cli_tools/memory.py:*)",
+      "Bash(uv run python cli_tools/search.py:*)",
+      "Bash(uv run python cli_tools/external.py:*)",
+      "Bash(uv run python cli_tools/gate.py:*)",
+      "Bash(uv run python cli_tools/workspace.py:*)",
+      "Bash(uv run python cli_tools/control.py:*)",
+      "Bash(uv run python cli_tools/lean.py:*)",
+      "Bash(cli_tools/leancheck.sh:*)",
+      "Bash(cat:*)",
+      "Bash(file:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(ls:*)",
+      "Bash(rg:*)",
+      "Bash(sed -n:*)",
+      "Bash(wc:*)",
+      "Bash(test -d:*)",
+      "Bash(test -f:*)",
+      "Bash(cp -n:*)",
+      "Bash(mkdir -p:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git status:*)"
+    ],
+    "deny": [
+      "Bash(rm:*)"
+    ]
+  }
+}

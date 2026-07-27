@@ -1,0 +1,6 @@
+{
+  "name": "fl-prover",
+  "version": "0.1.0",
+  "description": "Codex workflows for multi-agent Lean 4 formal theorem proving orchestration.",
+  "skills": "./.agents/skills/"
+}

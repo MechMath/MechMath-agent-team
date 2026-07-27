@@ -1,0 +1,10 @@
+[project]
+name = "kbmanager"
+version = "0.1.0"
+description = "Persistent mathematical knowledge base managed by Codex"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies = []
+
+[tool.uv]
+package = false

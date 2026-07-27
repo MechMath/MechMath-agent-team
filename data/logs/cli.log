@@ -1,0 +1,304 @@
+2026-07-27 14:18:05,100 _search.frontier INFO frontier.init workspace=/tmp/tmpsc_g1xve max_depth=2
+2026-07-27 14:18:05,101 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:18:05,102 _search.frontier INFO frontier.init workspace=/tmp/tmpc1mrpo4r max_depth=2
+2026-07-27 14:18:05,102 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:18:05,103 _search.frontier INFO frontier.push id=W5 created=True
+2026-07-27 14:18:05,104 _search.frontier INFO frontier.push id=W3 created=True
+2026-07-27 14:18:05,362 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:05,362 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 1 analyses, 0 experience
+2026-07-27 14:18:05,362 _memory.inbox INFO kb_manager_write.write called: path=None filename='c.md' card_type='Experience_'
+2026-07-27 14:18:05,362 _memory.inbox INFO created KB-Manager inbox: /tmp/tmpfncu1ren/data/inbox
+2026-07-27 14:18:05,363 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmpfncu1ren/data/inbox/20260727_c.md
+2026-07-27 14:18:05,363 _memory.inbox INFO kb_manager_write.write called: path=None filename='bound.md' card_type=None
+2026-07-27 14:18:05,363 _memory.inbox INFO created KB-Manager inbox: /tmp/tmp2ox2d04z/data/inbox
+2026-07-27 14:18:05,363 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmp2ox2d04z/data/inbox/20260727_bound.md
+2026-07-27 14:18:05,363 _memory.inbox INFO kb_manager_write.write called: path=None filename='n.md' card_type=None
+2026-07-27 14:18:05,483 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:05,484 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:18:05,484 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:05,484 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:18:05,484 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:05,484 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:18:05,818 _search.frontier INFO frontier.init workspace=/tmp/tmpvbz0hu_x max_depth=2
+2026-07-27 14:18:05,819 _search.frontier INFO frontier.init workspace=/tmp/tmp2cebsov6 max_depth=1
+2026-07-27 14:18:05,820 _search.frontier INFO frontier.push id=arxiv:9 created=True
+2026-07-27 14:18:05,821 _search.frontier INFO frontier.mark id=arxiv:9 status=expanded
+2026-07-27 14:18:05,822 _search.frontier INFO frontier.init workspace=/tmp/tmpes1c3f2_ max_depth=2
+2026-07-27 14:18:05,822 _search.frontier INFO frontier.init workspace=/tmp/tmp88dy0xy8 max_depth=2
+2026-07-27 14:18:05,822 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:05,823 _search.frontier INFO frontier.init workspace=/tmp/tmp88dy0xy8 max_depth=1
+2026-07-27 14:18:05,823 _search.frontier INFO frontier.init workspace=/tmp/tmpa0b2io1v max_depth=2
+2026-07-27 14:18:05,824 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:05,825 _search.frontier INFO frontier.init workspace=/tmp/tmpkpkv2gb2 max_depth=2
+2026-07-27 14:18:05,825 _search.frontier INFO frontier.push id=good created=True
+2026-07-27 14:18:05,826 _search.frontier WARNING frontier: skipping malformed line 2 in /tmp/tmpkpkv2gb2/knowledge/frontier.jsonl
+2026-07-27 14:18:05,827 _search.frontier INFO frontier.init workspace=/tmp/tmp9920szs5 max_depth=2
+2026-07-27 14:18:05,827 _search.frontier INFO frontier.init workspace=/tmp/tmparaaxuqj max_depth=2
+2026-07-27 14:18:05,827 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:05,828 _search.frontier INFO frontier.init workspace=/tmp/tmpo1zpicer max_depth=2
+2026-07-27 14:18:05,828 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:05,829 _search.frontier INFO frontier.next workspace=/tmp/tmpo1zpicer n=1 returned=1 claim=True
+2026-07-27 14:18:05,830 _search.frontier INFO frontier.init workspace=/tmp/tmp7j5pgh_d max_depth=2
+2026-07-27 14:18:05,830 _search.frontier INFO frontier.push id=within created=True
+2026-07-27 14:18:05,831 _search.frontier INFO frontier.push id=beyond created=True
+2026-07-27 14:18:05,831 _search.frontier INFO frontier.next workspace=/tmp/tmp7j5pgh_d n=5 returned=1 claim=False
+2026-07-27 14:18:05,832 _search.frontier INFO frontier.init workspace=/tmp/tmprkc7sd7e max_depth=2
+2026-07-27 14:18:05,832 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:05,833 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:18:05,834 _search.frontier INFO frontier.mark id=a status=skipped
+2026-07-27 14:18:05,834 _search.frontier INFO frontier.next workspace=/tmp/tmprkc7sd7e n=5 returned=1 claim=False
+2026-07-27 14:18:05,835 _search.frontier INFO frontier.init workspace=/tmp/tmpdiwem1td max_depth=2
+2026-07-27 14:18:05,835 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:05,836 _search.frontier INFO frontier.next workspace=/tmp/tmpdiwem1td n=1 returned=1 claim=False
+2026-07-27 14:18:05,837 _search.frontier INFO frontier.init workspace=/tmp/tmp70mcltwg max_depth=2
+2026-07-27 14:18:05,837 _search.frontier INFO frontier.push id=low created=True
+2026-07-27 14:18:05,838 _search.frontier INFO frontier.push id=high created=True
+2026-07-27 14:18:05,839 _search.frontier INFO frontier.push id=mid created=True
+2026-07-27 14:18:05,839 _search.frontier INFO frontier.next workspace=/tmp/tmp70mcltwg n=3 returned=3 claim=False
+2026-07-27 14:18:05,840 _search.frontier INFO frontier.init workspace=/tmp/tmprp_k0if3 max_depth=2
+2026-07-27 14:18:05,840 _search.frontier INFO frontier.push id=shallow created=True
+2026-07-27 14:18:05,841 _search.frontier INFO frontier.push id=deep created=True
+2026-07-27 14:18:05,841 _search.frontier INFO frontier.next workspace=/tmp/tmprp_k0if3 n=5 returned=1 claim=False
+2026-07-27 14:18:05,842 _search.frontier INFO frontier.init workspace=/tmp/tmp2x_wpag1 max_depth=2
+2026-07-27 14:18:05,842 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:05,843 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:18:05,844 _search.frontier INFO frontier.init workspace=/tmp/tmpllsydbip max_depth=2
+2026-07-27 14:18:05,844 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:05,845 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:18:05,846 _search.frontier INFO frontier.init workspace=/tmp/tmp0r7r75el max_depth=2
+2026-07-27 14:18:05,846 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:05,847 _search.frontier INFO frontier.mark id=arxiv:1 status=expanded
+2026-07-27 14:18:05,848 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:18:05,849 _search.frontier INFO frontier.init workspace=/tmp/tmp1cjadw5c max_depth=2
+2026-07-27 14:18:05,849 _search.frontier INFO frontier.init workspace=/tmp/tmpwwmci1n5 max_depth=2
+2026-07-27 14:18:05,849 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:05,850 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:18:05,851 _search.frontier INFO frontier.mark id=a status=expanded
+2026-07-27 14:18:06,172 _search.frontier INFO frontier.init workspace=/tmp/tmpdri47w7s max_depth=2
+2026-07-27 14:18:06,172 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:18:06,173 _search.frontier INFO frontier.init workspace=/tmp/tmpd2n64b7d max_depth=2
+2026-07-27 14:18:06,174 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:18:06,174 _search.frontier INFO frontier.push id=W5 created=True
+2026-07-27 14:18:06,175 _search.frontier INFO frontier.push id=W3 created=True
+2026-07-27 14:18:06,437 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:06,437 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 1 analyses, 0 experience
+2026-07-27 14:18:06,438 _memory.inbox INFO kb_manager_write.write called: path=None filename='c.md' card_type='Experience_'
+2026-07-27 14:18:06,438 _memory.inbox INFO created KB-Manager inbox: /tmp/tmpqdyzclfq/data/inbox
+2026-07-27 14:18:06,438 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmpqdyzclfq/data/inbox/20260727_c.md
+2026-07-27 14:18:06,438 _memory.inbox INFO kb_manager_write.write called: path=None filename='bound.md' card_type=None
+2026-07-27 14:18:06,438 _memory.inbox INFO created KB-Manager inbox: /tmp/tmp6h4fxu1c/data/inbox
+2026-07-27 14:18:06,439 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmp6h4fxu1c/data/inbox/20260727_bound.md
+2026-07-27 14:18:06,439 _memory.inbox INFO kb_manager_write.write called: path=None filename='n.md' card_type=None
+2026-07-27 14:18:06,562 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:06,562 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:18:06,562 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:06,562 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:18:06,562 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:18:06,562 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:18:06,898 _search.frontier INFO frontier.init workspace=/tmp/tmpmixrsfao max_depth=2
+2026-07-27 14:18:06,899 _search.frontier INFO frontier.init workspace=/tmp/tmp85qdu44o max_depth=1
+2026-07-27 14:18:06,900 _search.frontier INFO frontier.push id=arxiv:9 created=True
+2026-07-27 14:18:06,901 _search.frontier INFO frontier.mark id=arxiv:9 status=expanded
+2026-07-27 14:18:06,902 _search.frontier INFO frontier.init workspace=/tmp/tmpqmr5ex35 max_depth=2
+2026-07-27 14:18:06,902 _search.frontier INFO frontier.init workspace=/tmp/tmpu7tbh192 max_depth=2
+2026-07-27 14:18:06,902 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:06,903 _search.frontier INFO frontier.init workspace=/tmp/tmpu7tbh192 max_depth=1
+2026-07-27 14:18:06,904 _search.frontier INFO frontier.init workspace=/tmp/tmpf0_du6nk max_depth=2
+2026-07-27 14:18:06,904 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:06,905 _search.frontier INFO frontier.init workspace=/tmp/tmpydr5xmkw max_depth=2
+2026-07-27 14:18:06,905 _search.frontier INFO frontier.push id=good created=True
+2026-07-27 14:18:06,906 _search.frontier WARNING frontier: skipping malformed line 2 in /tmp/tmpydr5xmkw/knowledge/frontier.jsonl
+2026-07-27 14:18:06,907 _search.frontier INFO frontier.init workspace=/tmp/tmpsymmgak_ max_depth=2
+2026-07-27 14:18:06,907 _search.frontier INFO frontier.init workspace=/tmp/tmpdhfupd1n max_depth=2
+2026-07-27 14:18:06,907 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:06,908 _search.frontier INFO frontier.init workspace=/tmp/tmphtbeabt3 max_depth=2
+2026-07-27 14:18:06,908 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:06,909 _search.frontier INFO frontier.next workspace=/tmp/tmphtbeabt3 n=1 returned=1 claim=True
+2026-07-27 14:18:06,910 _search.frontier INFO frontier.init workspace=/tmp/tmp_fqjwmit max_depth=2
+2026-07-27 14:18:06,910 _search.frontier INFO frontier.push id=within created=True
+2026-07-27 14:18:06,911 _search.frontier INFO frontier.push id=beyond created=True
+2026-07-27 14:18:06,911 _search.frontier INFO frontier.next workspace=/tmp/tmp_fqjwmit n=5 returned=1 claim=False
+2026-07-27 14:18:06,912 _search.frontier INFO frontier.init workspace=/tmp/tmpmbzxhtrk max_depth=2
+2026-07-27 14:18:06,912 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:06,913 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:18:06,914 _search.frontier INFO frontier.mark id=a status=skipped
+2026-07-27 14:18:06,914 _search.frontier INFO frontier.next workspace=/tmp/tmpmbzxhtrk n=5 returned=1 claim=False
+2026-07-27 14:18:06,915 _search.frontier INFO frontier.init workspace=/tmp/tmpf2gqnnog max_depth=2
+2026-07-27 14:18:06,915 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:06,915 _search.frontier INFO frontier.next workspace=/tmp/tmpf2gqnnog n=1 returned=1 claim=False
+2026-07-27 14:18:06,916 _search.frontier INFO frontier.init workspace=/tmp/tmpy7ccum1l max_depth=2
+2026-07-27 14:18:06,917 _search.frontier INFO frontier.push id=low created=True
+2026-07-27 14:18:06,917 _search.frontier INFO frontier.push id=high created=True
+2026-07-27 14:18:06,918 _search.frontier INFO frontier.push id=mid created=True
+2026-07-27 14:18:06,918 _search.frontier INFO frontier.next workspace=/tmp/tmpy7ccum1l n=3 returned=3 claim=False
+2026-07-27 14:18:06,919 _search.frontier INFO frontier.init workspace=/tmp/tmpk7wghsoy max_depth=2
+2026-07-27 14:18:06,920 _search.frontier INFO frontier.push id=shallow created=True
+2026-07-27 14:18:06,920 _search.frontier INFO frontier.push id=deep created=True
+2026-07-27 14:18:06,921 _search.frontier INFO frontier.next workspace=/tmp/tmpk7wghsoy n=5 returned=1 claim=False
+2026-07-27 14:18:06,921 _search.frontier INFO frontier.init workspace=/tmp/tmpgoecoyle max_depth=2
+2026-07-27 14:18:06,922 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:06,922 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:18:06,924 _search.frontier INFO frontier.init workspace=/tmp/tmp2izoh9yv max_depth=2
+2026-07-27 14:18:06,924 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:06,924 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:18:06,925 _search.frontier INFO frontier.init workspace=/tmp/tmpzpox060s max_depth=2
+2026-07-27 14:18:06,926 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:18:06,926 _search.frontier INFO frontier.mark id=arxiv:1 status=expanded
+2026-07-27 14:18:06,927 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:18:06,928 _search.frontier INFO frontier.init workspace=/tmp/tmp0gycb14r max_depth=2
+2026-07-27 14:18:06,929 _search.frontier INFO frontier.init workspace=/tmp/tmp6g230oui max_depth=2
+2026-07-27 14:18:06,929 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:18:06,930 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:18:06,931 _search.frontier INFO frontier.mark id=a status=expanded
+2026-07-27 14:23:32,457 _search.frontier INFO frontier.init workspace=/tmp/tmp2w4mnx86 max_depth=2
+2026-07-27 14:23:32,457 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:23:32,458 _search.frontier INFO frontier.init workspace=/tmp/tmpvv_h4wgp max_depth=2
+2026-07-27 14:23:32,458 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:23:32,459 _search.frontier INFO frontier.push id=W5 created=True
+2026-07-27 14:23:32,460 _search.frontier INFO frontier.push id=W3 created=True
+2026-07-27 14:23:32,721 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:32,721 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 1 analyses, 0 experience
+2026-07-27 14:23:32,721 _memory.inbox INFO kb_manager_write.write called: path=None filename='c.md' card_type='Experience_'
+2026-07-27 14:23:32,721 _memory.inbox INFO created KB-Manager inbox: /tmp/tmph8bf5k52/data/inbox
+2026-07-27 14:23:32,721 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmph8bf5k52/data/inbox/20260727_c.md
+2026-07-27 14:23:32,722 _memory.inbox INFO kb_manager_write.write called: path=None filename='bound.md' card_type=None
+2026-07-27 14:23:32,722 _memory.inbox INFO created KB-Manager inbox: /tmp/tmpnupra3fs/data/inbox
+2026-07-27 14:23:32,722 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmpnupra3fs/data/inbox/20260727_bound.md
+2026-07-27 14:23:32,722 _memory.inbox INFO kb_manager_write.write called: path=None filename='n.md' card_type=None
+2026-07-27 14:23:32,841 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:32,841 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:23:32,841 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:32,842 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:23:32,842 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:32,842 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:23:33,174 _search.frontier INFO frontier.init workspace=/tmp/tmp8ktvtr8a max_depth=2
+2026-07-27 14:23:33,175 _search.frontier INFO frontier.init workspace=/tmp/tmp2c_bcmog max_depth=1
+2026-07-27 14:23:33,176 _search.frontier INFO frontier.push id=arxiv:9 created=True
+2026-07-27 14:23:33,177 _search.frontier INFO frontier.mark id=arxiv:9 status=expanded
+2026-07-27 14:23:33,178 _search.frontier INFO frontier.init workspace=/tmp/tmpjssd3kof max_depth=2
+2026-07-27 14:23:33,179 _search.frontier INFO frontier.init workspace=/tmp/tmpydoxkzci max_depth=2
+2026-07-27 14:23:33,179 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:33,180 _search.frontier INFO frontier.init workspace=/tmp/tmpydoxkzci max_depth=1
+2026-07-27 14:23:33,180 _search.frontier INFO frontier.init workspace=/tmp/tmp6p7x4rjy max_depth=2
+2026-07-27 14:23:33,180 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:33,181 _search.frontier INFO frontier.init workspace=/tmp/tmp247re2jb max_depth=2
+2026-07-27 14:23:33,181 _search.frontier INFO frontier.push id=good created=True
+2026-07-27 14:23:33,182 _search.frontier WARNING frontier: skipping malformed line 2 in /tmp/tmp247re2jb/knowledge/frontier.jsonl
+2026-07-27 14:23:33,183 _search.frontier INFO frontier.init workspace=/tmp/tmphbs2klkk max_depth=2
+2026-07-27 14:23:33,183 _search.frontier INFO frontier.init workspace=/tmp/tmp49ea1d7n max_depth=2
+2026-07-27 14:23:33,184 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:33,185 _search.frontier INFO frontier.init workspace=/tmp/tmp0h0mwrg0 max_depth=2
+2026-07-27 14:23:33,185 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:33,186 _search.frontier INFO frontier.next workspace=/tmp/tmp0h0mwrg0 n=1 returned=1 claim=True
+2026-07-27 14:23:33,187 _search.frontier INFO frontier.init workspace=/tmp/tmpq3y6no_i max_depth=2
+2026-07-27 14:23:33,187 _search.frontier INFO frontier.push id=within created=True
+2026-07-27 14:23:33,188 _search.frontier INFO frontier.push id=beyond created=True
+2026-07-27 14:23:33,188 _search.frontier INFO frontier.next workspace=/tmp/tmpq3y6no_i n=5 returned=1 claim=False
+2026-07-27 14:23:33,189 _search.frontier INFO frontier.init workspace=/tmp/tmp_71nxpf1 max_depth=2
+2026-07-27 14:23:33,189 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:33,190 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:23:33,191 _search.frontier INFO frontier.mark id=a status=skipped
+2026-07-27 14:23:33,191 _search.frontier INFO frontier.next workspace=/tmp/tmp_71nxpf1 n=5 returned=1 claim=False
+2026-07-27 14:23:33,192 _search.frontier INFO frontier.init workspace=/tmp/tmpg6dzbu3p max_depth=2
+2026-07-27 14:23:33,192 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:33,192 _search.frontier INFO frontier.next workspace=/tmp/tmpg6dzbu3p n=1 returned=1 claim=False
+2026-07-27 14:23:33,193 _search.frontier INFO frontier.init workspace=/tmp/tmpqhy_vr63 max_depth=2
+2026-07-27 14:23:33,193 _search.frontier INFO frontier.push id=low created=True
+2026-07-27 14:23:33,194 _search.frontier INFO frontier.push id=high created=True
+2026-07-27 14:23:33,195 _search.frontier INFO frontier.push id=mid created=True
+2026-07-27 14:23:33,195 _search.frontier INFO frontier.next workspace=/tmp/tmpqhy_vr63 n=3 returned=3 claim=False
+2026-07-27 14:23:33,196 _search.frontier INFO frontier.init workspace=/tmp/tmprfak6x29 max_depth=2
+2026-07-27 14:23:33,196 _search.frontier INFO frontier.push id=shallow created=True
+2026-07-27 14:23:33,197 _search.frontier INFO frontier.push id=deep created=True
+2026-07-27 14:23:33,197 _search.frontier INFO frontier.next workspace=/tmp/tmprfak6x29 n=5 returned=1 claim=False
+2026-07-27 14:23:33,198 _search.frontier INFO frontier.init workspace=/tmp/tmprtxjux5t max_depth=2
+2026-07-27 14:23:33,198 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:33,199 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:23:33,200 _search.frontier INFO frontier.init workspace=/tmp/tmpgmzjt6cx max_depth=2
+2026-07-27 14:23:33,200 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:33,201 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:23:33,202 _search.frontier INFO frontier.init workspace=/tmp/tmpmxysnfuj max_depth=2
+2026-07-27 14:23:33,203 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:33,203 _search.frontier INFO frontier.mark id=arxiv:1 status=expanded
+2026-07-27 14:23:33,204 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:23:33,205 _search.frontier INFO frontier.init workspace=/tmp/tmp1z6lqon9 max_depth=2
+2026-07-27 14:23:33,206 _search.frontier INFO frontier.init workspace=/tmp/tmp866pu1ak max_depth=2
+2026-07-27 14:23:33,206 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:33,207 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:23:33,207 _search.frontier INFO frontier.mark id=a status=expanded
+2026-07-27 14:23:33,521 _search.frontier INFO frontier.init workspace=/tmp/tmp02i9yl3c max_depth=2
+2026-07-27 14:23:33,521 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:23:33,522 _search.frontier INFO frontier.init workspace=/tmp/tmp7row1ub_ max_depth=2
+2026-07-27 14:23:33,522 _search.frontier INFO frontier.push id=W2 created=True
+2026-07-27 14:23:33,523 _search.frontier INFO frontier.push id=W5 created=True
+2026-07-27 14:23:33,524 _search.frontier INFO frontier.push id=W3 created=True
+2026-07-27 14:23:33,780 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:33,780 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 1 analyses, 0 experience
+2026-07-27 14:23:33,780 _memory.inbox INFO kb_manager_write.write called: path=None filename='c.md' card_type='Experience_'
+2026-07-27 14:23:33,780 _memory.inbox INFO created KB-Manager inbox: /tmp/tmpheeraehz/data/inbox
+2026-07-27 14:23:33,780 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmpheeraehz/data/inbox/20260727_c.md
+2026-07-27 14:23:33,781 _memory.inbox INFO kb_manager_write.write called: path=None filename='bound.md' card_type=None
+2026-07-27 14:23:33,781 _memory.inbox INFO created KB-Manager inbox: /tmp/tmpuzofeptu/data/inbox
+2026-07-27 14:23:33,781 _memory.inbox INFO kb_manager_write.write succeeded: dest=/tmp/tmpuzofeptu/data/inbox/20260727_bound.md
+2026-07-27 14:23:33,781 _memory.inbox INFO kb_manager_write.write called: path=None filename='n.md' card_type=None
+2026-07-27 14:23:33,900 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:33,900 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:23:33,900 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:33,900 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:23:33,900 _memory.kb INFO kb_manager_summary.build_summary called
+2026-07-27 14:23:33,900 _memory.kb INFO kb_manager_summary.build_summary succeeded: 1 concepts, 0 analyses, 0 experience
+2026-07-27 14:23:34,229 _search.frontier INFO frontier.init workspace=/tmp/tmpmdtssh6o max_depth=2
+2026-07-27 14:23:34,230 _search.frontier INFO frontier.init workspace=/tmp/tmpw2gsy1qy max_depth=1
+2026-07-27 14:23:34,231 _search.frontier INFO frontier.push id=arxiv:9 created=True
+2026-07-27 14:23:34,232 _search.frontier INFO frontier.mark id=arxiv:9 status=expanded
+2026-07-27 14:23:34,233 _search.frontier INFO frontier.init workspace=/tmp/tmpgob931wb max_depth=2
+2026-07-27 14:23:34,233 _search.frontier INFO frontier.init workspace=/tmp/tmpyrbd51vp max_depth=2
+2026-07-27 14:23:34,233 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:34,234 _search.frontier INFO frontier.init workspace=/tmp/tmpyrbd51vp max_depth=1
+2026-07-27 14:23:34,234 _search.frontier INFO frontier.init workspace=/tmp/tmpxvf2pz9b max_depth=2
+2026-07-27 14:23:34,234 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:34,236 _search.frontier INFO frontier.init workspace=/tmp/tmpyx2t42w4 max_depth=2
+2026-07-27 14:23:34,236 _search.frontier INFO frontier.push id=good created=True
+2026-07-27 14:23:34,237 _search.frontier WARNING frontier: skipping malformed line 2 in /tmp/tmpyx2t42w4/knowledge/frontier.jsonl
+2026-07-27 14:23:34,238 _search.frontier INFO frontier.init workspace=/tmp/tmpx93mj8lc max_depth=2
+2026-07-27 14:23:34,238 _search.frontier INFO frontier.init workspace=/tmp/tmpjxktb87f max_depth=2
+2026-07-27 14:23:34,238 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:34,239 _search.frontier INFO frontier.init workspace=/tmp/tmpomh1asq_ max_depth=2
+2026-07-27 14:23:34,239 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:34,240 _search.frontier INFO frontier.next workspace=/tmp/tmpomh1asq_ n=1 returned=1 claim=True
+2026-07-27 14:23:34,241 _search.frontier INFO frontier.init workspace=/tmp/tmp5wmqhbtj max_depth=2
+2026-07-27 14:23:34,241 _search.frontier INFO frontier.push id=within created=True
+2026-07-27 14:23:34,242 _search.frontier INFO frontier.push id=beyond created=True
+2026-07-27 14:23:34,242 _search.frontier INFO frontier.next workspace=/tmp/tmp5wmqhbtj n=5 returned=1 claim=False
+2026-07-27 14:23:34,243 _search.frontier INFO frontier.init workspace=/tmp/tmpqwm0oh4v max_depth=2
+2026-07-27 14:23:34,243 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:34,244 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:23:34,245 _search.frontier INFO frontier.mark id=a status=skipped
+2026-07-27 14:23:34,245 _search.frontier INFO frontier.next workspace=/tmp/tmpqwm0oh4v n=5 returned=1 claim=False
+2026-07-27 14:23:34,246 _search.frontier INFO frontier.init workspace=/tmp/tmpebep142j max_depth=2
+2026-07-27 14:23:34,246 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:34,246 _search.frontier INFO frontier.next workspace=/tmp/tmpebep142j n=1 returned=1 claim=False
+2026-07-27 14:23:34,247 _search.frontier INFO frontier.init workspace=/tmp/tmpjo_tsxuy max_depth=2
+2026-07-27 14:23:34,248 _search.frontier INFO frontier.push id=low created=True
+2026-07-27 14:23:34,248 _search.frontier INFO frontier.push id=high created=True
+2026-07-27 14:23:34,249 _search.frontier INFO frontier.push id=mid created=True
+2026-07-27 14:23:34,249 _search.frontier INFO frontier.next workspace=/tmp/tmpjo_tsxuy n=3 returned=3 claim=False
+2026-07-27 14:23:34,250 _search.frontier INFO frontier.init workspace=/tmp/tmp3tcla09r max_depth=2
+2026-07-27 14:23:34,250 _search.frontier INFO frontier.push id=shallow created=True
+2026-07-27 14:23:34,251 _search.frontier INFO frontier.push id=deep created=True
+2026-07-27 14:23:34,251 _search.frontier INFO frontier.next workspace=/tmp/tmp3tcla09r n=5 returned=1 claim=False
+2026-07-27 14:23:34,252 _search.frontier INFO frontier.init workspace=/tmp/tmpeum1q0fg max_depth=2
+2026-07-27 14:23:34,252 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:34,253 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:23:34,254 _search.frontier INFO frontier.init workspace=/tmp/tmpjklntjge max_depth=2
+2026-07-27 14:23:34,255 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:34,255 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:23:34,257 _search.frontier INFO frontier.init workspace=/tmp/tmpqa6q_ggf max_depth=2
+2026-07-27 14:23:34,257 _search.frontier INFO frontier.push id=arxiv:1 created=True
+2026-07-27 14:23:34,258 _search.frontier INFO frontier.mark id=arxiv:1 status=expanded
+2026-07-27 14:23:34,259 _search.frontier INFO frontier.push id=arxiv:1 created=False
+2026-07-27 14:23:34,260 _search.frontier INFO frontier.init workspace=/tmp/tmpjn71_pt6 max_depth=2
+2026-07-27 14:23:34,260 _search.frontier INFO frontier.init workspace=/tmp/tmpo4ascooi max_depth=2
+2026-07-27 14:23:34,260 _search.frontier INFO frontier.push id=a created=True
+2026-07-27 14:23:34,261 _search.frontier INFO frontier.push id=b created=True
+2026-07-27 14:23:34,262 _search.frontier INFO frontier.mark id=a status=expanded

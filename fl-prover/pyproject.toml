@@ -1,0 +1,22 @@
+[project]
+name = "fl-prover"
+version = "0.1.0"
+description = "Formal Language Prover (FL-Prover) — multi-agent Lean 4 formal theorem-proving harness (MechMath Agent Team)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.42.0",
+    "sympy>=1.13",
+    "google-genai>=1.0.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.2.2",
+    "requests>=2.31",
+    "fire>=0.7.1",
+    "pyyaml>=6.0.3",
+]
+
+# FL-Prover ships no importable package: the deterministic tooling lives in
+# `cli_tools/` and `scripts/` and is invoked directly, e.g.
+# `uv run python cli_tools/<tool>.py` or `python -m scripts.run_claude`.
+[tool.uv]
+package = false

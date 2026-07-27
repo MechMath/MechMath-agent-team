@@ -1,0 +1,6 @@
+{
+  "name": "kbmanager",
+  "version": "0.1.0",
+  "description": "Codex workflows for maintaining a persistent mathematical research knowledge base.",
+  "skills": "./.agents/skills/"
+}

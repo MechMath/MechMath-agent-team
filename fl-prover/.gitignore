@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+.venv/
+venv/
+*.log
+logs/
+
+.claude/settings.local.json
+uv.lock
+
+# Design records, kept local
+docs/
+
+# Lean build / scratch artifacts
+.cache/
+lake-packages/
+.lake/
+projects/
+tmp/
+tmp_scratch/

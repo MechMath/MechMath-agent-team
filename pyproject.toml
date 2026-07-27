@@ -1,0 +1,13 @@
+[project]
+name = "mmat-project-template"
+version = "0.1.0"
+description = "Integrated project template for the MechMath Agent Team research workflow"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["kb-manager", "nl-prover", "fl-prover"]

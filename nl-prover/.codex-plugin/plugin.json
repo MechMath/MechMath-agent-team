@@ -1,0 +1,6 @@
+{
+  "name": "nl-prover",
+  "version": "0.1.0",
+  "description": "Codex workflows for multi-agent informal mathematical proof orchestration.",
+  "skills": "./.agents/skills/"
+}
