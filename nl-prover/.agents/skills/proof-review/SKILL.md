@@ -21,7 +21,7 @@ branch queue.
   impossible precondition, target defect, or "cannot prove from available
   setup" conclusion.
 - CE-Hunter proposes a boundary failure or obstruction candidate.
-- Regulator classifies a failed branch as possible `target-obstruction` or
+- Regulator judges a failed branch to be a possible obstruction, or
   mixed proof/refutation state.
 - A proposed disproof depends on a minimal, quotient, degenerate, endpoint, or
   otherwise exceptional case.
@@ -106,7 +106,7 @@ or Verifier.
    `PROOF_REVISION` with owner `CE-Hunter`. Choose
    `OBSTRUCTION_VERIFICATION` only if the refutation route already contains a
    concrete mathematical obstruction that can be sent to a fresh Verifier. If
-   the artifact mixes proof-local, source, definition, DAG, and obstruction
+   the artifact mixes several distinct blockers
    blockers and the next owner is not clear, use a restart status with owner
    `Regulator`.
 7. Before using the selected status, run

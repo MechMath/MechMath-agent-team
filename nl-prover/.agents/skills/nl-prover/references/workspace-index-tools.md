@@ -62,6 +62,46 @@ and the `article-writing` skill for ownership; the gate side is
 `gate.py proof-attempt --ledger` and `gate.py citation-audit` (see
 `verification-gates.md`).
 
+`ledger status` reports the trust breakdown of *that ledger* — how many claims
+sit at each trust level, and which are still `pending-audit` or `borrowed`. It
+is not the run dashboard. The run dashboard is `workspace.py status`, one word shorter and a
+different tool; grepping this file for "status" returns both, so read which noun
+precedes it before copying a line.
+
+## Run Status
+
+```bash
+uv run python cli_tools/workspace.py status <run-root>
+uv run python cli_tools/workspace.py status <run-root> --json
+uv run python cli_tools/workspace.py status <tree> --index
+```
+
+Where one run stands, on one page: liveness from the newest artifact under
+`lemmas/`, `verification/`, `sketch/` and `recovery/`; the proof graph (`gate
+dag`); what the round cost (`gate speed`); the memory channels and how many
+candidate cards are pending; and which of `proof.pdf`, `progress_notes.pdf` and
+`progress_summary.pdf` exist. `--index` walks every directory holding a
+`STATUS.md` below `<tree>` and prints one line each, newest first — a run root is
+wherever a `STATUS.md` is, not a top-level directory, since `ESConjecture/` alone
+holds fifteen of them.
+
+Two properties are worth knowing before you read the output.
+
+**Every absent field says why it is absent.** Nothing prints `0` for something it
+could not measure. This harness lost months to a metric reading `0.0` because a
+parser silently decoded nothing, and a dashboard is the point where that lie
+reaches a person rather than a log. `logs/dispatch.jsonl` is deliberately not a
+source: it exists in 6 of 54 run roots, in four mutually incompatible
+hand-written schemas.
+
+**Nothing is invented.** Four things a reader obviously wants — a run-level
+phase, a last-progress timestamp, a machine-readable current focus, and cost —
+are recorded by no file anywhere, and the page prints them as missing, by name.
+Do not fill them in from inference; if you need one, the fix is a file that
+records it. Liveness is likewise derived from mtimes, not from a recorded event:
+an archive extraction moves it, and time the human spent away from the keyboard
+reads exactly like time the run spent stuck.
+
 ## Memory (three-tier, single entry `memory.py`)
 
 `memory.py` is the only memory tool. The tier logic lives in the internal
@@ -69,8 +109,8 @@ package `cli_tools/_memory/` (`local`, `kb`, `experience`); do not call those
 directly.
 
 ```bash
-# long-term negative-constraint memory (resident memory.md) — read every cycle
-uv run python cli_tools/memory.py read --tier long-term --view compact
+# long-term memory (resident memory.md) — read every cycle, workspace included
+uv run python cli_tools/memory.py read --tier long-term --view compact <workspace>
 # local workspace tier
 uv run python cli_tools/memory.py refresh <workspace> --view compact
 uv run python cli_tools/memory.py read --tier local <workspace>
@@ -78,7 +118,41 @@ uv run python cli_tools/memory.py read --tier local <workspace> --query "missing
 uv run python cli_tools/memory.py append <workspace> --channel branch_states --source STATUS.md --kind status
 # KB tier (compact index; full card bodies via the kb-manager query workflow)
 uv run python cli_tools/memory.py read --tier kb --view compact
+# record one lesson — the only sanctioned writer into memory/candidates/
+uv run python cli_tools/memory.py candidate <workspace> --agent generator --run-id <run-id> \
+    --kind negative-constraint --scope class-level \
+    --statement "<what was learned, one line>" \
+    --trigger "<the structural cue that should bring it back>" \
+    --why "<the conditions under which it applies>" \
+    --failure-modes "<when this card itself misleads>"
+# ... or record explicitly that the failure taught nothing transferable
+uv run python cli_tools/memory.py candidate <workspace> --agent generator --run-id <run-id> \
+    --no-constraint "<why this failure carries no transferable lesson>"
+# what the start-of-round re-read costs, before deciding what to read
+uv run python cli_tools/memory.py budget <workspace>
 ```
+
+**The workspace argument on the long-term read is not optional.** `memory.py`
+stamps `memory/.longterm_read.json` only when a workspace is passed, and
+`gate stop` escalates a missing stamp to an error — so the bare form cannot pass
+its own stop gate, however faithfully the memory was actually read. This file
+carried the bare form until `gate contracts` read `memory.py` and said so.
+
+`candidate` is the **only** way to record a lesson: it validates the card fields
+and appends to `memory/candidates/<agent>-<run-id>.jsonl`. Never hand-edit that
+JSONL — a malformed line is not rejected where it is written, it is silently
+skipped at aggregation weeks later, by which time the run that knew the lesson
+is over. `--no-constraint REASON` goes through the same door and is the explicit
+"this failure taught nothing transferable"; `gate stop` checks that one or the
+other is present. `aggregate-candidates <workspace>` dedups them into the
+long-term tier and re-renders `memory.md`.
+
+`budget <workspace>` reports the bytes the Orchestrator re-reads at the start of
+every round against the read budget, and names the largest contributor. It calls
+the same function `gate.py speed` reports, deliberately rather than
+reimplementing it — two copies of a threshold drift, and then two tools disagree
+about whether a run is over budget. Check it at step 1, when you still have a
+choice about what to read, not only at the gate afterwards.
 
 `refresh` rescans known files into the local channels (`STATUS.md` →
 `branch_states`, `recovery/` and `routes/proof_review*` → `failed_paths`,

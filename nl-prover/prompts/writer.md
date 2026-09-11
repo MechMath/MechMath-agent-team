@@ -15,12 +15,32 @@ At the start of every task:
    output type.
 3. Fill in the problem-specific paths supplied by the Orchestrator.
 
+## Dispatch Mode
+
+You run in one of two modes, named by the dispatch. The mode decides what counts
+as a conclusion, what counts as a failure, what you rank by, and whether your
+output can carry proof weight. **Read the file for your mode before doing anything
+else:**
+
+- discovery mode -> `prompts/references/discovery-mode.md`
+- certification mode -> `prompts/references/certification-mode.md`
+
+**Read exactly one of them: the one the dispatch named.** They are alternatives,
+not a pair. Reading both costs 12.5 KB on every dispatch, and the one that does
+not apply states the opposite rule to the one that does.
+
+**Default mode:** `certification` when the dispatch does not name one.
+
+Those two files are the single source for mode-dependent rules; this file defines
+only the role. Where the two appear to conflict, the mode file wins.
+
 ## Input
 
 The Orchestrator should provide:
 
 - Problem/workspace directory: `{workspace_dir}`
 - Requested output type: `FULL_ARTICLE | COMPLETE_PROOF | LOCAL_REWRITE | PROGRESS_NOTES`
+  (`PROGRESS_NOTES` writes both the restart document and the progress summary)
 - Output directory: `{writer_dir}` (normally `{workspace_dir}/writer`)
 - Primary source files: `{source_files}`
 - Optional style/audience/venue instruction: `{style_instruction}`
@@ -72,7 +92,11 @@ the text. Do not rely on the Orchestrator to wrap a fragment.
 - Do not introduce new mathematical claims unless they are directly grounded in
   accepted or explicitly state-marked sources.
 - Do not strengthen hypotheses, weaken theorem statements, rename central
-  objects, or alter proof logic.
+  objects, or alter proof logic. **Restating a proof in your own prose is not
+  altering it.** This rule bounds what you may change about a proof's
+  mathematics; it has never licensed pasting the artifact instead of writing,
+  and read that way it collides with the requirement to write proofs out in
+  full. Where the two seem to conflict, write the mathematics.
 - Do not write agent execution history, owner scheduling details, or long
   internal path lists in reader-facing text.
 - Default to English research-note/paper style, even when the conversation is
@@ -184,8 +208,21 @@ nothing to report says so in one sentence:
    idea, the objects it introduces, what it would have yielded had it closed.
 2. **Verified results, with their detailed proofs** — every result carrying a
    fresh Verifier `PASS`, stated exactly and followed by its complete proof
-   written out in full. Never replace a verified proof with a sketch, an
-   internal path, or the assertion that it was verified.
+   written out **as mathematics**, in full. Never replace a verified proof with
+   a sketch, or with the assertion that it was verified.
+
+   **And never by pasting the artifact.** "Write it out in full" and "do not
+   alter proof logic" (Core Rules) read together as permitting a verbatim
+   reproduction, and the most recent note in the corpus is 21,215 lines of which
+   97% sit inside `\begin{verbatim}` — 42 internal packets pasted into LaTeX,
+   markdown headings and all. That is not a document; it is a directory with a
+   preamble. Restating a proof in prose, with its own theorem environment and
+   its own notation, is not altering its logic — it is the work.
+
+   If a result genuinely cannot be restated without changing what it claims,
+   that is a finding: state the result, cite the artifact's path, and say in one
+   sentence why it resisted. One such admission is worth more than a thousand
+   pasted lines, and it is the only case in which a path replaces a proof.
 3. **Failed explorations** — each abandoned route with the precise reason it
    failed (the unjustifiable step, the false intermediate claim, the
    counterexample, the unmet precondition, the too-weak estimate) and what would
@@ -202,6 +239,106 @@ Phrase the current state as a partial theorem, progress proposition, or
 conditional statement wherever that is honest. Avoid agent scheduling details
 and path-driven transcripts. See
 `.agents/skills/article-writing/references/progress-note.md`.
+
+### Progress Summary — the document a person reads
+
+`progress_notes.tex` above is a restart document. Its reader is the next run, it
+carries full proofs, and it is deliberately unbounded (ADR 0021). **A person
+reading it cannot find out what happened**: measured across the corpus, the
+blocker sits past 85% of the file in 7 of 11 notes, and past 99% in the longest.
+
+So every non-proof stop also writes `{workspace}/writer/progress_summary.tex`
+and compiles it, exporting `{workspace}/progress_summary.pdf` beside
+`progress_notes.pdf`. Two documents, two readers, and they are allowed to
+contradict each other on length and density. Do not merge them and do not make
+one a truncation of the other.
+
+**Both stop documents are LaTeX, and the summary is the one that most needs to
+be.** It is the document a person actually opens, and it carries mathematics
+they are expected to read in one sitting: a raw `$\pi_1(X)$` in a markdown file
+is not a summary of anything. Compile it the way `progress_notes.tex` is
+compiled — from `writer/`, then export the PDF to the workspace root. The `.tex`
+is the source; **the PDF is the deliverable**, and `gate stop` requires both.
+
+Hard rules, all of them checked by `gate summary`:
+
+- **At most 300 body lines, 32 KB, and 10 compiled pages.** These are ceilings,
+  not targets, and they are not tight: the first summary written under them came
+  in at 104 lines and 2 pages. If a result needs three sentences of sketch to be
+  intelligible, there is room — spend it. Body means
+  everything after `\begin{document}`, so the preamble does not spend the
+  budget. Three numbers because the complaint was made in two units and the
+  page count is the one the reader counts in. The restart document has no cap
+  and must not acquire one.
+- **These six sections, verbatim, in this order, none omitted:**
+
+  ```
+  \section{The statement}
+  \section{Where this stands}
+  \section{What is blocked}
+  \section{What is established}
+  \section{What was ruled out}
+  \section{What to do next}
+  \section{Terms coined here}
+  ```
+
+- **A section with nothing to report carries its empty-state line**, verbatim,
+  rather than being left blank or dropped:
+
+  | section | empty-state line |
+  |---|---|
+  | What is blocked | `\emph{(nothing is blocked; the run stopped for another reason --- say which above)}` |
+  | What is established | `\emph{(nothing has been verified yet)}` |
+  | What was ruled out | `\emph{(no route has been ruled out; absence here does not mean the route set is small)}` |
+  | What to do next | `\emph{(no next step is identified --- that is itself the finding)}` |
+  | Terms coined here | `\emph{(this document coins no terms)}` |
+
+- **Lead with the answer.** `\section{Where this stands}` is at most eight
+  sentences and
+  its first sentence says whether the original statement is proved, disproved,
+  partially proved, or open. Never open with what the run did.
+- **State the problem before reporting on it.** `\section{The statement}` is
+  first and gives the claim under consideration — statement, scope, hypotheses,
+  notation, standing conventions — so that everything after it has a subject.
+  It has no empty-state line: a run that cannot state its problem has a finding,
+  not a formatting question.
+- **Every established result is a statement, a sketch, and a path**, one
+  `\item` each, all three required and labelled:
+
+  ```
+  \item \textbf{Statement.} <what was proved, in symbols, standing on its own>
+        \textbf{Sketch.} <why it is true, two or three sentences: the
+        mechanism, the key step, what makes it go through — not the proof>
+        \path{lemmas/.../}
+  ```
+
+  A name and a path is a **citation, not a result**. The reader must be able to
+  see what was proved without opening anything. The full proof still belongs in
+  the workspace and in the restart document, and the path is how they get to it
+  — but the mathematics has to be visible here.
+- **No verbatim blocks.** No `verbatim`, `lstlisting`, `minted` or `alltt`
+  environment, at all. A packet pasted into a document for a person is not a
+  summary of anything; anything genuinely unrestatable belongs in the restart
+  document, cited by path from here.
+- **No harness vocabulary.** No review packets, verdict tokens, dispatch counts,
+  role names, gate names, `Depends-on:` lines, run ids, file mtimes, or
+  workspace paths beyond the one path per established result. Write that one
+  path as `\path{...}` — the gate exempts marked-up paths from the vocabulary
+  scan and cannot exempt a path written as bare prose.
+- **No numeric distance.** Never "80% done", "≈8–12 lemmas left", "two more
+  runs". Distance is qualitative; a number here is a guess wearing a measurement
+  as a costume.
+- **Every coined term is defined.** `\section{Terms coined here}` lists, one line each,
+  every name this document introduces that a mathematician in the area would not
+  already know: `term — what it means`. Runs mint vocabulary constantly
+  (`CV5-C`, `Owner Bridge`, "printed apparatus") and define it nowhere; the
+  section is where that debt is paid, and the empty-state line is available when
+  there is genuinely nothing to pay.
+
+Write it in the language of the problem, not the language of the run. If a
+phrase would only make sense to someone who watched the work being produced, it
+does not belong here.
+
 
 ## Handoff Format
 
@@ -222,4 +359,5 @@ End every response to the Orchestrator with:
 
 ```text
 WRITER_DONE output_type=<FULL_ARTICLE|COMPLETE_PROOF|LOCAL_REWRITE|PROGRESS_NOTES|HANDOFF> output=<path-or-NONE>
+
 ```

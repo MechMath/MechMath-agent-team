@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 
@@ -213,6 +214,93 @@ class ProofAttemptLintTests(unittest.TestCase):
         )
         proof_attempt_lint.lint_status_text(status(), result=result, signals=signals)
         self.assertEqual([], result.errors)
+
+    def test_the_no_proof_weight_disclaimer_is_not_a_route_failure(self):
+        """Invariant 16 requires discovery artifacts to say their output
+        "carries no proof weight". The route-failure regex matched that
+        sentence, so the mandated wording tripped a blocking check."""
+        patterns = proof_attempt_lint.ROUTE_FAILURE_PATTERNS
+        self.assertFalse(
+            any(p.search("This computation carries no proof weight.") for p in patterns)
+        )
+        self.assertTrue(
+            any(p.search("There is no proof of the covering direction.") for p in patterns)
+        )
+
+class VerifiedBeforeHandoffTests(unittest.TestCase):
+    """In certification an artifact arrives with a verdict or it does not arrive.
+
+    The check itself is unchanged and there is still exactly one per round; what
+    moves is who starts it.
+    """
+
+    def make_lemma(self, tmp, *, body, packet=True, version=3):
+        root = Path(tmp) / "lemmas" / "branch" / "leaf"
+        (root / "generator").mkdir(parents=True)
+        proof = root / "generator" / f"proof_v{version}.md"
+        proof.write_text(body, encoding="utf-8")
+        if packet:
+            (root / "verifier").mkdir(parents=True)
+            (root / "verifier" / f"review_packet_v{version}.md").write_text(
+                "# Review Packet\n", encoding="utf-8"
+            )
+        return proof
+
+    def test_certification_attempt_without_a_packet_is_turned_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proof = self.make_lemma(tmp, body="# Proof\n\nSomething.\n", packet=False)
+            result = proof_attempt_lint.lint_files(proof)
+            self.assertTrue(any("no verifier packet" in e for e in result.errors))
+
+    def test_the_message_names_both_routes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proof = self.make_lemma(tmp, body="# Proof\n", packet=False)
+            errors = " ".join(proof_attempt_lint.lint_files(proof).errors)
+            self.assertIn("verify.py", errors)
+            self.assertIn("Verifier subagent", errors)
+
+    def test_a_packet_for_this_round_satisfies_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proof = self.make_lemma(tmp, body="# Proof\n", packet=True)
+            result = proof_attempt_lint.lint_files(proof)
+            self.assertFalse(any("no verifier packet" in e for e in result.errors))
+
+    def test_a_packet_from_an_earlier_round_does_not(self):
+        """A prior PASS applies only to the exact artifact it checked."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proof = self.make_lemma(tmp, body="# Proof\n", packet=False, version=4)
+            (proof.parent.parent / "verifier").mkdir(parents=True)
+            (proof.parent.parent / "verifier" / "review_packet_v3.md").write_text(
+                "# Review Packet\n", encoding="utf-8"
+            )
+            result = proof_attempt_lint.lint_files(proof)
+            self.assertTrue(any("review_packet_v4.md" in e for e in result.errors))
+
+    def test_a_discovery_artifact_is_exempt(self):
+        """Discovery output discharges no obligation; a verdict on it would be a
+        category error, not a favour."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proof = self.make_lemma(
+                tmp,
+                body="**Mode: DISCOVERY.** Conjectural evidence.\n\n# Sketch\n",
+                packet=False,
+            )
+            result = proof_attempt_lint.lint_files(proof)
+            self.assertFalse(any("no verifier packet" in e for e in result.errors))
+
+    def test_a_file_that_is_not_a_generator_attempt_is_left_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            other = Path(tmp) / "routes" / "brainstorm_1.md"
+            other.parent.mkdir(parents=True)
+            other.write_text("# Ideas\n", encoding="utf-8")
+            result = proof_attempt_lint.lint_files(other)
+            self.assertFalse(any("no verifier packet" in e for e in result.errors))
+
+    def test_it_can_be_switched_off_for_a_mid_write_draft(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proof = self.make_lemma(tmp, body="# Proof\n", packet=False)
+            result = proof_attempt_lint.lint_files(proof, require_verdict=False)
+            self.assertFalse(any("no verifier packet" in e for e in result.errors))
 
 
 if __name__ == "__main__":

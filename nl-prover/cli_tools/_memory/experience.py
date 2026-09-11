@@ -1,6 +1,6 @@
 """Experience_* card model — the long-term negative-constraint tier.
 
-Long-term negative-constraint / heuristic-threshold cards. Both the card bodies
+Long-term memory cards. Both the card bodies
 (`memory/experience/*.md`) and their rendered recall index (repo-root
 `memory.md`, two load-bearing lines `trigger` + `statement` per card) live **in
 this repository**, and `memory render-longterm` produces the latter from the
@@ -28,8 +28,16 @@ from typing import Any
 
 # The two load-bearing fields for recall (rendered into memory.md), plus the
 # fields that make a card honest/usable. Kept in sync with ADR 0017 §2.
-CARD_KINDS = ("negative-constraint", "heuristic-threshold")
-CARD_TYPES = ("experience", "error", "obstruction")
+CARD_KINDS = ("negative-constraint", "transferable-idea")
+# Admission to the resident tier: a card earns a place only if it could apply
+# to another problem. Cards scoped to one problem stay on disk, retrievable,
+# but out of the every-cycle read set (ADR 0023 L.1/L.2).
+CARD_SCOPES = ("class-level", "this-problem-only")
+RESIDENT_SCOPE = "class-level"
+# "general" is what cards written before ADR 0023 used for the same meaning.
+# Accepted on read so existing cards keep their place; not offered for new ones.
+LEGACY_RESIDENT_SCOPES = ("general", "")
+CARD_TYPES = ("experience", "error")
 
 FRONTMATTER_KEYS = (
     "type",
@@ -115,7 +123,17 @@ def write_card(fields: dict[str, Any], *, root: Path | None = None) -> Path:
     """Write one Experience_* card body, returning its path."""
     cards_dir = experience_dir(root)
     cards_dir.mkdir(parents=True, exist_ok=True)
-    card_id = fields.get("id") or f"neg-{slugify(fields.get('statement', ''))}"
+    # The prefix follows the KIND. It was hardcoded `neg-`, so all 82 cards in
+    # the corpus carry a `neg-` id and 25 of them are `transferable-idea`. That
+    # is how a whole round came to record "82 cards, all negative-constraint" in
+    # a diagnosis, a commit message, this module's own docstring and an E4 item:
+    # the id was read instead of the field, and the id agreed with itself.
+    #
+    # Existing cards keep their ids -- `fields.get("id")` wins -- because an id
+    # is a reference and renaming 25 of them would break every citation. The
+    # mislabelling is historical and stays visible; what stops is minting more.
+    prefix = "idea" if fields.get("kind") == "transferable-idea" else "neg"
+    card_id = fields.get("id") or f"{prefix}-{slugify(fields.get('statement', ''))}"
     fields = {"type": "experience", **fields, "id": card_id}
     path = cards_dir / f"Experience_{card_id}.md"
     path.write_text(card_from_fields(fields), encoding="utf-8")
@@ -123,23 +141,72 @@ def write_card(fields: dict[str, Any], *, root: Path | None = None) -> Path:
 
 
 def validate_card(card: dict[str, Any]) -> list[str]:
-    """Return a list of problems; empty means valid enough to store."""
+    """Return a list of problems; empty means valid enough to store.
+
+    `why` and `failure_modes` are in the schema, were asked for by the routing
+    skill, and were checked by nothing: of 82 cards on disk, 19 carry no `why`
+    and 21 no `failure_modes`. They are required here now.
+
+    They are not decoration. The resident memory is read at the top of every
+    cycle by every specialist, so a card with no stated applicability condition
+    (`why`) fires on the wrong problem, and one with no stated failure mode is
+    something nobody can argue with. The field that says when this card itself
+    misleads is what keeps the list from quietly closing off the search.
+
+    A correction to what this comment used to say. It read "every card in the
+    tier is a `negative-constraint` — the resident memory is a list of
+    prohibitions", and that is false: 57 of the 82 are, and 25 are
+    `transferable-idea`. The claim came from reading the card *ids*, all 82 of
+    which begin `neg-` because `write_card` hardcoded that prefix regardless of
+    kind. The id agreed with itself, and the same wrong number reached a
+    diagnosis, a commit message, this docstring and an E4 item reading
+    "`transferable-idea` has never been used once". It has been used 25 times.
+    Reading the identifier instead of the field is `wall_clock_ms = 0.0` in a
+    different costume.
+
+    Cards already on disk are not dropped for this: the render path reports
+    problems and still renders, so the missing fields are named rather than
+    costing the run its memory. What cannot happen any more is writing a *new*
+    card without them.
+    """
     problems: list[str] = []
     if not card.get("statement"):
         problems.append("missing statement")
     if not card.get("trigger"):
         problems.append("missing trigger (recall is load-bearing)")
+    if not card.get("why"):
+        problems.append("missing why (the conditions under which this applies)")
+    if not card.get("failure_modes"):
+        problems.append("missing failure_modes (when this card itself misleads)")
     kind = card.get("kind", "")
     if kind and kind not in CARD_KINDS:
         problems.append(f"unknown kind {kind!r}; allowed: {', '.join(CARD_KINDS)}")
+    scope = card.get("scope", "")
+    if scope and scope not in CARD_SCOPES + LEGACY_RESIDENT_SCOPES:
+        problems.append(
+            f"unknown scope {scope!r}; allowed: {', '.join(CARD_SCOPES)} "
+            f"(only {RESIDENT_SCOPE} is rendered into memory.md)"
+        )
     return problems
 
 
-def render_memory_md(cards: list[dict[str, Any]]) -> str:
+def render_memory_md(cards: list[dict[str, Any]], *, resident_only: bool = True) -> str:
     """Render the resident compact list (trigger + statement two lines per card)
-    that becomes repo-root memory.md. ADR 0016 §3.3."""
+    that becomes repo-root memory.md. ADR 0016 3.3, ADR 0023 L.1.
+
+    Only cards whose scope could apply to another problem are resident. Cards
+    marked this-problem-only stay on disk and stay retrievable, but do not enter
+    the every-cycle read set. A missing scope, or the pre-0023 value "general",
+    counts as resident so existing cards keep their current behaviour.
+    """
+    if resident_only:
+        cards = [
+            c for c in cards
+            if str(c.get("scope", "") or "") in
+            (RESIDENT_SCOPE,) + LEGACY_RESIDENT_SCOPES
+        ]
     header = [
-        "# Long-Term Negative-Constraint Memory",
+        "# Long-Term Memory",
         "",
         "<!-- GENERATED by `memory render-longterm` from memory/experience/*.md. -->",
         "<!-- Do not edit by hand: edit the cards under memory/experience/ and -->",
@@ -156,7 +223,7 @@ def render_memory_md(cards: list[dict[str, Any]]) -> str:
         if trigger:
             lines.append(f"  Trigger: {trigger}")
     if not lines:
-        lines = ["_(no long-term negative-constraint cards yet)_"]
+        lines = ["_(no long-term memory cards yet)_"]
     return "\n".join(header + lines).rstrip() + "\n"
 
 

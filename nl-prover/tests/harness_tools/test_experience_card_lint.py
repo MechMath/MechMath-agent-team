@@ -21,6 +21,7 @@ def load_tool(name):
 
 
 from _memory import cardlint as lint
+from _memory import experience as cardlib
 
 
 GOOD = """---
@@ -29,6 +30,8 @@ kind: negative-constraint
 id: neg-zero-div
 statement: Do not divide by a possibly-zero leading coefficient.
 trigger: polynomial division step
+why: the leading coefficient may vanish for special parameter values
+failure_modes: over-flags once nonzero has already been established upstream
 refs: [[Concept_Polynomials]]
 ---
 Do not divide by a possibly-zero leading coefficient.
@@ -40,6 +43,8 @@ kind: negative-constraint
 id: neg-bad
 statement: Use the theorem below
 trigger: something
+why: because
+failure_modes: none known
 ---
 Theorem (Banach): every contraction on a complete metric space has a unique fixed point.
 """
@@ -60,6 +65,24 @@ class ExperienceCardLintTests(unittest.TestCase):
             errors = lint.lint_experience_card(self._write(tmp, INLINE_FACT))
             self.assertTrue(any("inline a theorem" in e for e in errors))
 
+    def test_missing_why_is_rejected(self):
+        card = GOOD.replace(
+            "why: the leading coefficient may vanish for special parameter values\n", ""
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = lint.lint_experience_card(self._write(tmp, card))
+            self.assertTrue(any("why" in e for e in errors), errors)
+
+    def test_missing_failure_modes_is_rejected(self):
+        """A card the reader cannot argue with. One that cannot say when it
+        itself misleads is one nobody can ever argue with."""
+        card = GOOD.replace(
+            "failure_modes: over-flags once nonzero has already been established upstream\n", ""
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = lint.lint_experience_card(self._write(tmp, card))
+            self.assertTrue(any("failure_modes" in e for e in errors), errors)
+
     def test_missing_trigger_is_rejected(self):
         card = GOOD.replace("trigger: polynomial division step\n", "")
         with tempfile.TemporaryDirectory() as tmp:
@@ -78,6 +101,46 @@ class ExperienceCardLintTests(unittest.TestCase):
             p = Path(tmp) / "note.md"
             p.write_text("# Concept_Foo\n\nThe spectral bound holds for all n.\n", encoding="utf-8")
             self.assertEqual([], lint.lint_fact_content(p))
+
+class CardIdPrefixTests(unittest.TestCase):
+    """The id must follow the kind.
+
+    It was hardcoded `neg-`, so all 82 cards in the corpus carry a `neg-` id and
+    25 of them are `transferable-idea`. A whole round then recorded "82 cards,
+    all negative-constraint" in a diagnosis, a commit message, a module
+    docstring and an E4 item saying `transferable-idea` had never been used —
+    because the id was read instead of the field, and the id agreed with itself.
+    """
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def write(self, **fields):
+        base = {
+            "kind": "negative-constraint",
+            "statement": "Do not read the identifier instead of the field",
+            "scope": "class-level",
+            "trigger": "any",
+            "why": "because",
+            "failure_modes": "when the identifier is right by accident",
+        }
+        base.update(fields)
+        return cardlib.write_card(base, root=self.root)
+
+    def test_a_negative_constraint_gets_a_neg_id(self):
+        self.assertTrue(self.write().name.startswith("Experience_neg-"))
+
+    def test_a_transferable_idea_does_not(self):
+        path = self.write(kind="transferable-idea")
+        self.assertTrue(path.name.startswith("Experience_idea-"), path.name)
+
+    def test_an_explicit_id_is_never_rewritten(self):
+        """An id is a reference. Renaming the 25 mislabelled cards would break
+        every citation of them; the mislabelling is historical and stays."""
+        path = self.write(kind="transferable-idea", id="neg-an-old-card")
+        self.assertEqual("Experience_neg-an-old-card.md", path.name)
 
 
 if __name__ == "__main__":

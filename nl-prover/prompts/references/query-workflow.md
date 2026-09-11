@@ -69,7 +69,8 @@ Index outputs:
 - The Orchestrator runs
   `uv run python cli_tools/search.py index refresh <workspace>`
   whenever query outputs exist, as part of the required per-cycle index refresh
-  (see `AGENTS.md` Routing preconditions), to summarize existing query outputs
+  (see your platform file's `## Routing` preconditions — `AGENTS.md` on Codex,
+  `CLAUDE.md` on Claude Code), to summarize existing query outputs
   and append source findings to `memory/source_findings.jsonl`.
 - Use
   `uv run python cli_tools/search.py index latest <workspace> --source matlas --limit 5`

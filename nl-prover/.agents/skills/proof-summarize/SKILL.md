@@ -131,20 +131,31 @@ Do not create memory for:
 
 - a single typo,
 - a one-off missing citation,
-- a proof-local gap that has no general lesson,
+- a gap local to this proof that has no general lesson,
 - an uncertain diagnosis.
 
 Human workflow preferences should be folded into error memory only when they are tied to a concrete recurring error pattern. For example, "When human review flags an added assumption, treat it as a blocker and repair without strengthening hypotheses" is valid memory. A generic preference like "be careful" is not.
 
-Memory is stored only in repository-root `memory.md`, not in KB-Manager and not in
-`../data/inbox`. Before editing `memory.md`, read the existing file if present.
-Merge, deduplicate, and tighten entries instead of appending blindly. Keep the
-entire file at 100 lines or fewer. If adding a new entry would exceed 100 lines,
-compress older entries, merge related rules, or remove lower-value details while
-preserving high-priority human-stated recurring errors.
+**Do not edit `memory.md`.** It is generated from `memory/experience/*.md` and
+`memory.py` guards it; hand-edits are overwritten by the next render and the
+guard refuses them anyway. This paragraph used to teach the opposite — read,
+merge, deduplicate, keep under 100 lines — and that was the pre-ADR-0017 model.
 
-Write `memory.md` in English only, even when the trigger feedback was written in
-another language.
+To record a lesson, write a candidate card:
+
+```bash
+uv run python cli_tools/memory.py candidate <workspace> \
+  --agent proof-summarize --run-id <run-id> --kind negative-constraint \
+  --scope class-level --statement ... --trigger ... --why ... --failure-modes ...
+```
+
+`memory.py aggregate-candidates <workspace>` promotes surviving candidates into
+`memory/experience/` and re-renders `memory.md`. Tier routing is
+`.agents/skills/memory-routing/SKILL.md`; the card schema is ADR 0017 and is
+checked by `memory.py card-lint`.
+
+Cards are written in English only, even when the trigger feedback was in another
+language.
 
 ## Output Format
 

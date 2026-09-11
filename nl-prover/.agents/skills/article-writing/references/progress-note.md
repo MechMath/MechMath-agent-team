@@ -125,3 +125,31 @@ State the current state as a partial theorem, progress proposition, or
 conditional statement wherever that is honest — it is more useful to a reader
 than prose about what is missing. Verified results carry their proofs in full;
 everything else is clearly labelled as candidate or failed.
+
+## The two documents, and why they are two
+
+A stop leaves **two** files. They have different readers, they want opposite
+things, and neither is a shorter version of the other. Written down here so that
+a later round does not merge them back.
+
+| | `writer/progress_notes.tex` | `writer/progress_summary.tex` |
+|---|---|---|
+| reader | the next run, and a mathematician resuming the work | the person who is deciding what to do about this run |
+| purpose | restart without reading the workspace | see where it stands, in a sitting |
+| verified results | stated and **proved in full** | statement + sketch + path, each labelled |
+| length | **no cap** — length buys restartability (ADR 0021) | **≤300 body lines, ≤32 KB, ≤10 pages** |
+| the blocker | in section 4 of 5 | in section 3 of 7 |
+| format | standalone LaTeX → `progress_notes.pdf` | standalone LaTeX → `progress_summary.pdf` |
+| structure | the five sections above | the seven sections in `prompts/writer.md` |
+| checked by | `gate stop` (existence) | `gate summary` (structure, budget, pages, vocabulary) |
+
+**Both are LaTeX, and that is deliberate.** The format follows the reader, not
+the length: the summary is the document a person actually opens, it carries
+mathematics they are meant to read in one sitting, and a raw `$\pi_1(X)$` in a
+markdown file is not a summary of anything. What separates the two documents is
+the cap and the section order, never the typesetting.
+
+The cap belongs to the summary and must not migrate to the note. ADR 0021 bought
+that length deliberately, and capping the restart document would trade back
+exactly what it bought. What was missing was never a shorter note — it was the
+other reader.

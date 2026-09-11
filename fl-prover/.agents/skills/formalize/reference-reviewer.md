@@ -113,6 +113,19 @@ Reject if the declaration kind does not match what the source does:
 - data-plus-properties that should be a `structure`/`class` written as a loose
   `def` returning a conjunction or anonymous constructor
 - `def` overuse where a `theorem` (a plain assertion) is what the source states
+- **an `axiom` or `opaque` declaration with no recorded boundary.** These are not one
+  of the three kinds, so nothing above catches them, and they are the most common way
+  a statement stops meaning what the source means: an `axiom` asserts the claim
+  instead of stating it, and nothing can be proved or refuted about an `opaque`, so a
+  theorem mentioning one is unfalsifiable where the source's sentence is not. Reject
+  and name the replacement: a `structure`/`class` carrying the data **and its defining
+  properties**, taken as a hypothesis; a `def` where the source constructs; a
+  `theorem … := by sorry` where the source asserts.
+  Reject on the *missing boundary*, not on the keyword — a cited external result the
+  project decided not to formalize is legitimate and keeps its recorded justification.
+  Same violation, different spelling: `def f := sorry`, and `opaque f := fun _ => 0`.
+  Mechanical: `uv run python cli_tools/lean.py axioms FILE` now reports what the file
+  declares, not only what its proofs consume, and exits non-zero.
 
 ## 11. Definition Acid Test and Source Conditions
 
@@ -153,7 +166,7 @@ Directionality: Pass/Fail - reason
 Finiteness: Pass/Fail - reason
 Typeclasses: Pass/Fail - reason
 Universe: Pass/Fail - reason
-Declaration Kind: Pass/Fail - reason
+Declaration Kind: Pass/Fail - reason (incl. axiom/opaque, and lean.py axioms result)
 Definition Acid Test: Pass/Fail - reason
 Readability/Bundling: Pass/Fail - reason
 

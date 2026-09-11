@@ -170,3 +170,22 @@ def markdown_list(title: str, rows: list[dict[str, Any]], fields: list[str]) -> 
                 lines.append(f"- **{field}**: {row[field]}")
         lines.append("")
     return "\n".join(lines)
+
+
+# Versioned artifact names: proof_v3.md, report_v12.md, review_packet_v2.md.
+# Shared so the speed gate and the presentation index cannot disagree about what
+# counts as a retry of the same document.
+VERSIONED_ARTIFACT = re.compile(r"^(.*?)_?v(\d+)\.md$")
+
+
+def version_of(path: Path) -> tuple[str, int] | None:
+    """(family key, version) for a versioned artifact, else None.
+
+    The family key includes the directory, so `lem_a/.../report_v1.md` and
+    `lem_b/.../report_v1.md` are different families. Version order is numeric:
+    sorting these names as strings puts v11 before v9.
+    """
+    match = VERSIONED_ARTIFACT.match(path.name)
+    if not match:
+        return None
+    return f"{path.parent.as_posix()}/{match.group(1)}", int(match.group(2))

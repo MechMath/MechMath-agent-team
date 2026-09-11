@@ -14,6 +14,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from _gate import waiver
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _workspace import ledger as _ledger  # noqa: E402
 
@@ -62,7 +64,14 @@ ROUTE_FAILURE_PATTERNS = [
         r"(?:is|are|remains)?\s*(?:undefined|not defined)\b",
         re.IGNORECASE,
     ),
-    re.compile(r"\bno (?:self-contained )?proof\b", re.IGNORECASE),
+    # "no proof of X here" is a route-failure claim. "carries no proof weight"
+    # is the invariant-16 disclaimer every discovery artifact is required to
+    # write, so the noun phrase has to be excluded or the mandated sentence
+    # trips a blocking check (observed: several agents hit this in one run).
+    re.compile(
+        r"\bno (?:self-contained )?proof\b(?!\s+(?:weight|value|force|status|obligation))",
+        re.IGNORECASE,
+    ),
 ]
 
 THEOREM_LIKE_CITATION_PATTERNS = [
@@ -169,6 +178,12 @@ class ProofSignals:
     remaining_obligations: str = ""
     audited_obstruction: bool = False
 
+
+REQUIREMENT = waiver.requirement_text(
+    checks='the shape of a generator proof attempt: required sections, obligation ledger\nentries for load-bearing steps, and hedging that leaves a step unjustified.',
+    legal='each load-bearing estimate, construction, theorem input, case split, bridge,\nand assembly step appears in the obligation ledger before it supports a proof',
+    fix='Add the missing ledger entry, or justify the step. Hedged-language findings\nare warnings and do not block.',
+)
 
 def canonical(name: str) -> str:
     return re.sub(r"\s+", " ", name.strip()).casefold()
@@ -283,9 +298,64 @@ def has_independent_definition_audit(section: str) -> bool:
     return has_any_match(section, INDEPENDENT_DEFINITION_AUDIT_PATTERNS)
 
 
+def lint_preamble_is_mathematics(text: str) -> list[str]:
+    """The block before the first `##` must not be a change log.
+
+    Measured on the worst lemma in the corpus: that block went from 11 lines in
+    `proof_v1.md` to 946 lines (61 KB) in `proof_v11.md`, an accumulated stack
+    of per-round change logs each describing the one before it — 60 KB of the
+    file's 92 KB total growth. Its own text says *"No mathematics is touched in
+    v11"*, and the same for v10. Two rounds and two fresh verifications of a
+    156 KB document, for no mathematics.
+
+    It is also a correctness problem, not only a cost one: a change log is
+    content the Verifier must certify, and v10's single blocking issue was a
+    false attribution inside that front matter. A claim that cannot be made
+    cannot be made falsely.
+
+    A warning, not an error. A preamble that is long because the statement is
+    long is legitimate, and this check cannot tell the difference — it reports
+    the shape and names what to do about it.
+    """
+    lines = text.splitlines()
+    end = len(lines)
+    for index, line in enumerate(lines):
+        if re.match(r"^#{2,} ", line):
+            end = index
+            break
+    preamble = lines[:end]
+    if len(preamble) <= PREAMBLE_LINE_BUDGET:
+        return []
+    body = "\n".join(preamble)
+    hits = sorted({match.group(0).lower() for match in CHANGE_LOG_PATTERN.finditer(body)})
+    if not hits:
+        return [
+            f"the block before the first '##' is {len(preamble)} lines "
+            f"(budget {PREAMBLE_LINE_BUDGET}) — check it is the statement and not accreted prose"
+        ]
+    return [
+        f"the block before the first '##' is {len(preamble)} lines and reads as a change log "
+        f"({', '.join(hits[:4])}) — move it to response_to_verifier.md. The Verifier is "
+        f"stateless (ADR 0003): it never read the previous version and must not be told "
+        f"what changed (prompts/generator.md)"
+    ]
+
+
+# Deliberately narrow. These are phrases about the revision process, not about
+# mathematics; a proof that needs them is describing its own history.
+CHANGE_LOG_PATTERN = re.compile(
+    r"what changed in v\d+|no mathematics is touched|"
+    r"what v\d+ (?:removes|adds|repairs)|change[- ]log|"
+    r"round[- ]\d+ verifier|previous verifier|in response to the verifier",
+    re.IGNORECASE,
+)
+PREAMBLE_LINE_BUDGET = 60
+
+
 def lint_proof_text(text: str) -> tuple[LintResult, ProofSignals]:
     result = LintResult()
     signals = ProofSignals(audited_obstruction=has_audited_obstruction(text))
+    result.warnings.extend(lint_preamble_is_mathematics(text))
 
     sections = read_sections(text, level=2)
     for section in REQUIRED_PROOF_SECTIONS:
@@ -518,10 +588,75 @@ def check_ledger(text: str, signals: ProofSignals, workspace: Path, result: Lint
             )
 
 
+# `lemmas/<...>/generator/proof_v<N>.md` -> the sibling verifier directory and
+# the round number, so the companion packet can be located without being told.
+GENERATOR_PROOF = re.compile(r"^proof_v(\d+)([a-z]?)\.md$")
+
+# How a discovery-mode artifact announces itself, in its opening lines. Same
+# form the discovery gate reads; the region is a property of the artifact.
+DISCOVERY_HEADER = re.compile(
+    r"\bmode\b\W{0,6}\**\s*discovery\b|\bDISCOVERY\b\s*[-\u2014\u2013]", re.I
+)
+HEADER_LINES = 15
+
+
+def declares_discovery(text: str) -> bool:
+    return bool(DISCOVERY_HEADER.search("\n".join(text.splitlines()[:HEADER_LINES])))
+
+
+def companion_packet(proof_path: Path) -> Path | None:
+    """The review packet for this exact round, or None if the path is not a
+    generator proof attempt and the packet therefore cannot be located."""
+    match = GENERATOR_PROOF.match(proof_path.name)
+    if not match or proof_path.parent.name != "generator":
+        return None
+    lemma_dir = proof_path.parent.parent
+    return lemma_dir / "verifier" / f"review_packet_v{match.group(1)}{match.group(2)}.md"
+
+
+def check_verified_before_handoff(
+    result: LintResult, proof_path: Path, text: str
+) -> None:
+    """In certification, an artifact arrives with a verdict or it does not arrive.
+
+    The producer used to write the proof, lint its shape, and hand it to the
+    Orchestrator, which dispatched a Verifier and passed the packet back. The
+    check itself is unchanged and there is still exactly one of it per round —
+    what moves is who starts it. Every round trip through the hub costs a
+    dispatch, and the dispatch is the unit the wall clock is made of.
+
+    Discovery artifacts are exempt, and not as a convenience: discovery output
+    discharges no proof obligation and causes no state transition, so a verdict
+    on it would be a category error.
+
+    This is refusable like every other check here: `--waive REASON`. If the
+    cold-start verifier is unavailable, that is what a waiver is for, and the
+    waiver log is what tells us the route is not working.
+    """
+    if declares_discovery(text):
+        return
+    packet = companion_packet(proof_path)
+    if packet is None or packet.exists():
+        return
+    result.errors.append(
+        f"certification-mode proof attempt with no verifier packet at {packet}. "
+        "Get one before handing this over: "
+        f"`uv run python cli_tools/verify.py dispatch {proof_path} --mode certification "
+        "--verification-mode lemma --statement <statement.md> --problem <problem.md> "
+        f"--output-dir {packet.parent} --workspace <workspace> --run`"
+        " -- and note `--run`, without which it prints the dispatch and writes no "
+        "packet, which is the loop this message exists to break. Or ask the "
+        "Orchestrator for a fresh Verifier "
+        "subagent — they are the same check. If the artifact is conjectural, say so with "
+        "a discovery-mode header and this stops applying."
+    )
+
+
 def lint_files(
     proof_path: Path,
     status_path: Path | None = None,
     ledger_workspace: Path | None = None,
+    require_verdict: bool = True,
 ) -> LintResult:
     try:
         text = proof_path.read_text(encoding="utf-8")
@@ -531,6 +666,9 @@ def lint_files(
         return result
 
     result, signals = lint_proof_text(text)
+
+    if require_verdict:
+        check_verified_before_handoff(result, proof_path, text)
 
     if ledger_workspace is not None:
         check_ledger(text, signals, ledger_workspace, result)
@@ -553,7 +691,9 @@ def lint_files(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Lint an NL-Prover generator proof attempt for shape readiness."
+        description="Lint an NL-Prover generator proof attempt for shape readiness.",
+        epilog=REQUIREMENT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("proof", type=Path, help="Path to proof_v<N>.md")
     parser.add_argument(
@@ -569,17 +709,37 @@ def build_parser() -> argparse.ArgumentParser:
         "references/ledger.jsonl (ADR 0019).",
     )
     parser.add_argument(
+        "--no-verdict-required",
+        action="store_true",
+        help="Skip the check that a certification-mode attempt already has its "
+        "verifier packet. For linting a draft mid-write; not for handing one over.",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Print machine-readable lint output.",
     )
+    waiver.add_waiver_arg(parser)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    result = lint_files(args.proof, status_path=args.status, ledger_workspace=args.ledger)
+    result = lint_files(
+        args.proof,
+        status_path=args.status,
+        ledger_workspace=args.ledger,
+        require_verdict=not args.no_verdict_required,
+    )
 
+    # Waive before reporting. Reporting first published a verdict computed
+    # before the waiver was applied, so `--json` listed errors the waiver
+    # had already excused and carried an `ok` that disagreed with the
+    # human output on the same run. The two views are one computation.
+    result.errors, _waived = waiver.apply_waiver(
+        result.errors, args.waive, gate="proof-attempt",
+        workspace=None,
+    )
     if args.json:
         print(
             json.dumps(
@@ -601,6 +761,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: {error}")
         for warning in result.warnings:
             print(f"WARNING: {warning}")
+    if not args.json:
+        waiver.print_waived(_waived, args.waive or "")
+    if result.errors and not args.json:
+        # Prose after a JSON document makes the document unparseable exactly
+        # when it carries something to report. Six of the ten gates did this;
+        # only the ones that happened to pass on the workspace they were tried
+        # against looked healthy.
+        print()
+        print(REQUIREMENT)
     return 0 if result.ok else 1
 
 

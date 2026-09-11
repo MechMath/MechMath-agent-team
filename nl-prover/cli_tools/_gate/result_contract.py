@@ -16,6 +16,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from _gate import waiver
+
 
 # Sibling lint module in the same _gate package.
 from _gate import review_packet as review_packet_lint
@@ -160,6 +162,12 @@ class ContractResult:
         return not self.errors
 
 
+REQUIREMENT = waiver.requirement_text(
+    checks='that final artifacts do not present a missing route, an unavailable source, or\nan agent inability as a proof or a mathematical obstruction.',
+    legal='the two mathematically complete terminal states are a verified proof of the\nexact original statement, and a verified counterexample or obstruction',
+    fix='Route the finding as restart state, or supply the obstruction review packet.\nProcess-language findings are warnings: a progress note that honestly says a\nstep was not proved is not a contract violation.',
+)
+
 def canonical(name: str) -> str:
     return re.sub(r"\s+", " ", name.strip()).casefold()
 
@@ -246,7 +254,11 @@ def validate_no_process_failure(result: ContractResult, proof_path: Path) -> Non
         return
     for failure in find_process_failures(proof_text):
         result.route_failures.append(failure)
-        result.errors.append(
+        # Process-language findings are advisory (ADR 0023 P.1): the regex
+        # cannot tell an honest "this round did not prove X" from a false
+        # claim, and the two error directions cost very differently --
+        # a miss is one uncaught line, a false positive blocks a correct route.
+        result.warnings.append(
             f"proof.tex line {failure.line_no} has {failure.label}: {failure.line!r}"
         )
     result.terminal_obstruction_claims.extend(
@@ -329,7 +341,9 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Check that final NL-Prover artifacts do not present a missing "
             "route or process failure as a mathematical result."
-        )
+        ),
+        epilog=REQUIREMENT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "workspace",
@@ -348,6 +362,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print machine-readable lint output.",
     )
+    waiver.add_waiver_arg(parser)
     return parser
 
 
@@ -355,6 +370,14 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     result = lint_workspace(args.workspace, extra_packets=args.packet)
 
+    # Waive before reporting. Reporting first published a verdict computed
+    # before the waiver was applied, so `--json` listed errors the waiver
+    # had already excused and carried an `ok` that disagreed with the
+    # human output on the same run. The two views are one computation.
+    result.errors, _waived = waiver.apply_waiver(
+        result.errors, args.waive, gate="result-contract",
+        workspace=args.workspace,
+    )
     if args.json:
         print(
             json.dumps(
@@ -396,6 +419,15 @@ def main(argv: list[str] | None = None) -> int:
             print("Obstruction packets checked:")
             for packet in result.obstruction_packets:
                 print(f"- {packet}")
+    if not args.json:
+        waiver.print_waived(_waived, args.waive or "")
+    if result.errors and not args.json:
+        # Prose after a JSON document makes the document unparseable exactly
+        # when it carries something to report. Six of the ten gates did this;
+        # only the ones that happened to pass on the workspace they were tried
+        # against looked healthy.
+        print()
+        print(REQUIREMENT)
     return 0 if result.ok else 1
 
 

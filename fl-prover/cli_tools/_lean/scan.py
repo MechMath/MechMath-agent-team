@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Scan Lean files for real sorry/admit tokens outside comments and strings."""
+"""Scan Lean files for real sorry/admit tokens outside comments and strings.
+
+Exits 1 when anything is found. It used to always exit 0, which made gate 2 of the
+merge gates a report rather than a gate: `scan FILE && next-step` ran the next step
+on a file full of `sorry`.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -93,6 +99,8 @@ def main(argv: list[str] | None = None) -> None:
         print_plain(result)
     else:
         print(json.dumps(result, indent=2, ensure_ascii=False))
+
+    sys.exit(1 if result["count"] else 0)
 
 
 if __name__ == "__main__":

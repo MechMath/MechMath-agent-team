@@ -16,6 +16,7 @@ from _common.indexing import (
     read_text,
     relative_to_workspace,
     summarize_text,
+    version_of,
     utc_now,
     workspace_path,
     write_json,
@@ -47,10 +48,38 @@ def file_info(workspace: Path, path: Path, *, view: str) -> dict[str, Any] | Non
     return info
 
 
-def collect_files(workspace: Path, pattern: str, *, view: str) -> list[dict[str, Any]]:
+def latest_versions_only(paths: list[Path]) -> list[Path]:
+    """Keep the newest version of each versioned artifact family.
+
+    The index is a routing view, and routing wants the current packet, not the
+    eight it replaced. Without this, a run's index grows with every retry: one
+    lemma has been measured at eleven versions, each of which would otherwise
+    contribute its own summary and head to a file re-read as an index.
+    Unversioned paths are always kept.
+    """
+    latest: dict[str, tuple[int, Path]] = {}
+    keep: list[Path] = []
+    for path in paths:
+        parsed = version_of(path)
+        if not parsed:
+            keep.append(path)
+            continue
+        key, index = parsed
+        if key not in latest or index > latest[key][0]:
+            latest[key] = (index, path)
+    keep.extend(path for _, path in latest.values())
+    return sorted(keep)
+
+
+def collect_files(
+    workspace: Path, pattern: str, *, view: str, latest_only: bool = False
+) -> list[dict[str, Any]]:
+    paths = sorted(workspace.glob(pattern))
+    if latest_only:
+        paths = latest_versions_only(paths)
     return [
         info
-        for path in sorted(workspace.glob(pattern))
+        for path in paths
         if (info := file_info(workspace, path, view=view)) is not None
     ]
 
@@ -75,7 +104,8 @@ def build_payload(workspace: Path, *, view: str) -> dict[str, Any]:
     writer = collect_files(workspace, "writer/*", view=view)
     recovery = collect_files(workspace, "recovery/*.md", view=view)
     source = collect_files(workspace, "routes/source_theorem*.md", view=view) + collect_files(workspace, "queries/*/*.md", view=view)
-    verification = collect_files(workspace, "**/review_packet*.md", view=view) + collect_files(workspace, "**/verdict*.md", view=view)
+    # latest_only: retries replace, they do not accumulate. See latest_versions_only.
+    verification = collect_files(workspace, "**/review_packet*.md", view=view, latest_only=True) + collect_files(workspace, "**/verdict*.md", view=view, latest_only=True)
     pdfs = collect_files(workspace, "proof.pdf", view=view) + collect_files(workspace, "progress_notes.pdf", view=view)
     presentation_failures = [
         item for item in writer if "revision_notes" in item.get("path", "") or "failure" in item.get("summary", "").casefold()

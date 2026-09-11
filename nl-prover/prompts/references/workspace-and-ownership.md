@@ -2,12 +2,20 @@
 
 Each problem lives in `../data/workspace/<problem_id>/`.
 
+`<id>` in the table below is a path under `lemmas/`, not necessarily one
+segment. Runs group lemmas by branch — `lemmas/<branch>/<lemma>/statement.md` —
+and that is fine; the owner of a file is decided by its name inside the lemma
+directory, not by how deep the lemma sits. Every reference to a lemma elsewhere
+(a `Depends-on:` line, a STATUS.md row, a packet) names the lemma alone, and the
+tools resolve it.
+
 Core files and directories:
 
 ```text
 proof.tex
 problem.md
 STATUS.md
+verification/
 recovery/
 routes/
 sketch/
@@ -46,6 +54,7 @@ Ownership:
 | `lemmas/<id>/statement.md` | Sketcher or selected refined plan |
 | `lemmas/<id>/generator/*` | Generator |
 | `lemmas/<id>/verifier/*` | Verifier |
+| `verification/<name>/*` | Verifier — packets for checks that are not a lemma's (obstruction, plan logic, source-theorem) |
 | `queries/index.md`, `queries/<query_id>/request.md`, `queries/<query_id>/status.md` | Orchestrator |
 | `queries/<query_id>/kb-manager.md` | KB-Manager |
 | `queries/<query_id>/index.json`, `queries/<query_id>/index.md` | `search.py index` mechanical output |
@@ -63,6 +72,24 @@ Ownership:
 | `writer/article_candidate.tex`, `writer/local_revision_candidate.tex`, `writer/progress_notes.tex` | Writer |
 | `writer/style_profile.md`, `writer/article_plan.md`, `writer/revision_notes.md` | Writer |
 | `proof.pdf`, `progress_notes.pdf` | Orchestrator mechanical export from Writer PDF |
+
+## Shadow and parallel-attempt targets
+
+A stalled dispatch is replaced by a **shadow** at a suffixed path, and a lemma
+that keeps failing may get **two Generators at once** at suffixed paths:
+
+| Pattern | Owner |
+|---------|-------|
+| `<owned_path>_shadow<K>.md` | the same role as `<owned_path>` |
+| `lemmas/<id>/generator/proof_v<N>b.md` | Generator, the parallel second attempt |
+
+The suffixed file is owned by whoever owns the file it shadows, so the ownership
+model does not change: **still exactly one writer per file.** That is the whole
+point of giving the shadow its own path rather than letting two agents race on one.
+
+Exactly one of a shadow pair is adopted and the other is discarded unread.
+**Never splice two independent attempts together** — that is authoring
+mathematics, and the Orchestrator does not author mathematics.
 
 Agents may read context broadly but should write only owned files. The
 Orchestrator may merge already verified content into `proof.tex`, update

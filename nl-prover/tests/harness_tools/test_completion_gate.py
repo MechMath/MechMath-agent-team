@@ -172,14 +172,22 @@ class CompletionGateTests(unittest.TestCase):
         self.assertEqual([], result.errors)
         self.assertEqual(1, len(result.packets_checked))
 
-    def test_rejects_pending_proof_marker(self):
+    def test_warns_on_pending_proof_marker(self):
+        """Process-language findings advise, they do not block (ADR 0023 P.1).
+
+        The regex cannot distinguish an honest note that a step is unfinished
+        from a false claim that it is finished, and the two mistakes cost very
+        differently: a miss is one uncaught line, a false positive blocks a
+        correct route.
+        """
         temp, root = self.make_workspace()
         with temp:
             (root / "proof.tex").write_text("\\sorry{}\n", encoding="utf-8")
             result = completion_gate.lint_workspace(root)
-        self.assertTrue(any("pending proof marker" in error for error in result.errors))
+        self.assertTrue(any("pending proof marker" in w for w in result.warnings))
+        self.assertFalse(any("pending proof marker" in e for e in result.errors))
 
-    def test_rejects_process_gap_final_proof(self):
+    def test_warns_on_process_gap_final_proof(self):
         temp, root = self.make_workspace()
         with temp:
             (root / "proof.tex").write_text(
@@ -188,7 +196,10 @@ class CompletionGateTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = completion_gate.lint_workspace(root)
-        self.assertTrue(any("result contract" in error for error in result.errors))
+        self.assertTrue(
+            any("result contract" in w for w in result.warnings)
+            or any("result contract" in e for e in result.errors)
+        )
 
     def test_rejects_noncomplete_phase(self):
         temp, root = self.make_workspace()
@@ -347,6 +358,264 @@ class CompletionGateTests(unittest.TestCase):
                 extra_packets=[obstruction_path],
             )
         self.assertEqual([], result.errors)
+
+
+class LemmaReconciliationTests(unittest.TestCase):
+    """lemmas/ on disk versus the Lemma Status table.
+
+    Four runs shipped a proof.pdf at phase `complete` over lemma directories
+    holding only a statement.md, because every existing check read STATUS.md and
+    proof.tex and none listed the directory. STATUS.md was internally consistent
+    in each case, so only the filesystem can report the omission.
+    """
+
+    def make_workspace(self):
+        temp = tempfile.TemporaryDirectory()
+        root = Path(temp.name)
+        packet_path = root / "lemmas/lem:test/verifier/review_packet_v1.md"
+        packet_path.parent.mkdir(parents=True)
+        packet_path.write_text(packet(), encoding="utf-8")
+        (root / "proof.tex").write_text(
+            "\\begin{theorem}T\\end{theorem}\\begin{proof}Done.\\end{proof}\n",
+            encoding="utf-8",
+        )
+        (root / "STATUS.md").write_text(status(), encoding="utf-8")
+        return temp, root
+
+    def test_no_lemmas_directory_is_a_no_op(self):
+        """Statements live in sketch/refined_lemmas/ in some runs. The check does
+        not go hunting; it reports that it had nothing to reconcile."""
+        temp = tempfile.TemporaryDirectory()
+        with temp:
+            root = Path(temp.name)
+            (root / "proof.tex").write_text(
+                "\\begin{theorem}T\\end{theorem}\\begin{proof}Done.\\end{proof}\n",
+                encoding="utf-8",
+            )
+            (root / "STATUS.md").write_text(status(), encoding="utf-8")
+            result = completion_gate.lint_workspace(root)
+        self.assertEqual("absent", result.lemma_reconciliation["lemmas_dir"])
+        self.assertEqual(0, result.lemma_reconciliation["directories"])
+        self.assertFalse(any("not accounted for" in e for e in result.errors))
+
+    def test_matching_directory_and_row_reconcile(self):
+        temp, root = self.make_workspace()
+        with temp:
+            result = completion_gate.lint_workspace(root)
+        self.assertEqual([], result.errors)
+        self.assertEqual(
+            {
+                "lemmas_dir": "present",
+                "directories": 1,
+                "status_rows": 1,
+                "unaccounted": 0,
+                "superseded": 0,
+                "rows_without_directory": 0,
+            },
+            result.lemma_reconciliation,
+        )
+
+    def test_rejects_directory_absent_from_status(self):
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "lemmas" / "orphan_route").mkdir()
+            (root / "lemmas" / "orphan_route" / "statement.md").write_text(
+                "# Lemma\nA statement nobody proved.\n", encoding="utf-8"
+            )
+            result = completion_gate.lint_workspace(root)
+        self.assertTrue(
+            any("lemmas/orphan_route/ is not accounted for" in e for e in result.errors),
+            result.errors,
+        )
+        self.assertEqual(1, result.lemma_reconciliation["unaccounted"])
+
+    def test_accepts_directory_declared_superseded_with_a_reason(self):
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "lemmas" / "orphan_route").mkdir()
+            (root / "STATUS.md").write_text(
+                status()
+                + "\n## Superseded Lemma Directories\n"
+                "- orphan_route — the covering argument replaced this decomposition\n",
+                encoding="utf-8",
+            )
+            result = completion_gate.lint_workspace(root)
+        self.assertEqual([], result.errors)
+        self.assertEqual(0, result.lemma_reconciliation["unaccounted"])
+        self.assertEqual(1, result.lemma_reconciliation["superseded"])
+
+    def test_rejects_superseded_entry_without_a_reason(self):
+        """A bare name reads as "I noticed this directory", not as a disposition."""
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "lemmas" / "orphan_route").mkdir()
+            (root / "STATUS.md").write_text(
+                status() + "\n## Superseded Lemma Directories\n- orphan_route\n",
+                encoding="utf-8",
+            )
+            result = completion_gate.lint_workspace(root)
+        self.assertTrue(
+            any("needs a reason" in e for e in result.errors), result.errors
+        )
+        # Still accounted for: reporting the same bullet twice blames it twice.
+        self.assertFalse(any("not accounted for" in e for e in result.errors))
+
+    def test_warns_on_status_row_with_no_directory(self):
+        """A warning, not an error: one run's 17 rows against 6 directories are
+        sub-steps refined under sketch/refined_lemmas/, which is legitimate."""
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "STATUS.md").write_text(
+                status().replace(
+                    "| lem:test | - | verified",
+                    "| lem:test | - | verified | 1/3 | PASS |"
+                    " lemmas/lem:test/verifier/review_packet_v1.md |\n"
+                    "| refined-elsewhere | - | verified",
+                ),
+                encoding="utf-8",
+            )
+            result = completion_gate.lint_workspace(root)
+        self.assertTrue(
+            any("names no lemmas/refined-elsewhere/ directory" in w for w in result.warnings),
+            result.warnings,
+        )
+        self.assertFalse(any("refined-elsewhere" in e for e in result.errors), result.errors)
+        self.assertEqual(1, result.lemma_reconciliation["rows_without_directory"])
+
+    def test_summary_label_row_is_not_reported_as_missing_a_directory(self):
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "STATUS.md").write_text(
+                status().replace("| lem:test |", "| Global terminal proof |"),
+                encoding="utf-8",
+            )
+            result = completion_gate.lint_workspace(root)
+        self.assertEqual(0, result.lemma_reconciliation["rows_without_directory"])
+        self.assertFalse(any("names no lemmas/" in w for w in result.warnings))
+
+    def test_rejects_empty_lemma_table_when_lemma_directories_exist(self):
+        """Statements on disk with nothing tracking them is the shipped-with-no-
+        verdicts failure; the same empty table over an empty workspace is not."""
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "STATUS.md").write_text(
+                "# Proof Status: sample\n\n"
+                "## Phase\ncomplete\n\n"
+                "## Lemma Status\nNONE\n\n"
+                "## Open Proof Obligations\nNONE\n",
+                encoding="utf-8",
+            )
+            result = completion_gate.lint_workspace(root)
+        self.assertTrue(
+            any(
+                "no parseable Lemma Status rows but lemmas/ contains" in e
+                for e in result.errors
+            ),
+            result.errors,
+        )
+
+    def test_empty_lemma_table_without_lemma_directories_stays_a_warning(self):
+        temp = tempfile.TemporaryDirectory()
+        with temp:
+            root = Path(temp.name)
+            (root / "proof.tex").write_text(
+                "\\begin{theorem}T\\end{theorem}\\begin{proof}Done.\\end{proof}\n",
+                encoding="utf-8",
+            )
+            (root / "STATUS.md").write_text(
+                "# Proof Status: sample\n\n"
+                "## Phase\ncomplete\n\n"
+                "## Lemma Status\nNONE\n\n"
+                "## Open Proof Obligations\nNONE\n",
+                encoding="utf-8",
+            )
+            result = completion_gate.lint_workspace(root)
+        self.assertTrue(
+            any(w.endswith("no parseable Lemma Status rows") for w in result.warnings),
+            result.warnings,
+        )
+        self.assertFalse(any("parseable Lemma Status rows" in e for e in result.errors))
+
+class TrackingDialectTests(unittest.TestCase):
+    """One error naming the dialect, not one error per directory.
+
+    Census of 54 STATUS.md in the corpus: 6 carry only `## Lemma Status`, 18
+    only `## Active Branch Queue`, 22 both, 8 neither; 19 have lemma
+    directories and no Lemma Status section. On the newest run that produced
+    ~25 errors carrying one fact.
+    """
+
+    def make_workspace(self, status_text, *lemma_names):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        (root / "STATUS.md").write_text(status_text, encoding="utf-8")
+        for name in lemma_names:
+            directory = root / "lemmas" / name
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / "statement.md").write_text("# s\n", encoding="utf-8")
+        return root
+
+    def run_both(self, root):
+        sections = completion_gate.read_sections(
+            (root / "STATUS.md").read_text(encoding="utf-8")
+        )
+        dialect = completion_gate.tracking_dialect(sections)
+        directories = completion_gate.lemma_directories(root)
+        result = completion_gate.GateResult()
+        completion_gate.validate_lemma_rows(
+            result,
+            workspace=root,
+            lemma_section=sections.get(completion_gate.canonical("Lemma Status"), ""),
+            has_lemma_directories=bool(directories),
+            dialect=dialect,
+            directory_count=len(directories),
+        )
+        completion_gate.validate_lemma_reconciliation(
+            result,
+            workspace=root,
+            lemma_section=sections.get(completion_gate.canonical("Lemma Status"), ""),
+            superseded_section="",
+            dialect=dialect,
+        )
+        return result
+
+    def test_branch_queue_over_many_lemmas_gives_one_error_carrying_the_count(self):
+        root = self.make_workspace(
+            "# s\n\n## Active Branch Queue\n\n| Rank |\n|---|\n| 1 |\n", "a", "b", "c"
+        )
+        result = self.run_both(root)
+        self.assertEqual(1, len(result.errors))
+        self.assertIn("Active Branch Queue", result.errors[0])
+        self.assertIn("3 lemma directories", result.errors[0])
+        self.assertEqual(3, result.lemma_reconciliation["cascade_suppressed"])
+
+    def test_neither_dialect_says_so_rather_than_naming_a_table(self):
+        result = self.run_both(self.make_workspace("# s\n\n## Target\n\nX\n", "a"))
+        self.assertEqual(1, len(result.errors))
+        self.assertIn("neither", result.errors[0])
+        self.assertIn("1 lemma directory is", result.errors[0])
+
+    def test_lemma_status_dialect_still_reports_per_directory(self):
+        """The cascade is right when there IS a table and a row is missing."""
+        root = self.make_workspace(
+            "# s\n\n## Lemma Status\n\n| Lemma | Status |\n|---|---|\n| a | PASS |\n",
+            "a",
+            "b",
+        )
+        result = self.run_both(root)
+        self.assertTrue(any("lemmas/b/ is not accounted for" in e for e in result.errors))
+        self.assertNotIn("cascade_suppressed", result.lemma_reconciliation)
+
+    def test_no_lemma_directories_is_a_warning_not_an_error(self):
+        result = self.run_both(self.make_workspace("# s\n\n## Active Branch Queue\n\n| r |\n"))
+        self.assertEqual([], result.errors)
+
+    def test_missing_phase_section_says_what_to_write(self):
+        result = completion_gate.GateResult()
+        completion_gate.validate_phase(result, {})
+        self.assertEqual(1, len(result.errors))
+        self.assertIn("## Phase", result.errors[0])
 
 
 if __name__ == "__main__":

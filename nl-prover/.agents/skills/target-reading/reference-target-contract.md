@@ -12,6 +12,21 @@ terminal-lemma assembly, and obstruction checks.
 - Exact target passage: <quote or line reference, short enough to identify the claim>
 - Local definitions read: <definitions, notation, and named constructions used by the target>
 
+## Requested Form
+What the asker required beyond the truth of the statement. A method directive is
+prose: read remarks, footnotes, and any covering note, not only displayed formulas.
+
+| Requirement | Verbatim source text | Kind | Standing | Divergence record |
+|-------------|----------------------|------|----------|-------------------|
+| <what is required> | <quote plus label or line> | method or route/explicitness/length/notation or venue/language/other | binding/advisory | NONE, <or what was delivered instead and why it was necessary> |
+
+- Write `NONE stated` when the source states none. An empty table and a table nobody
+  looked for are different findings.
+- `binding` is the default when the asker used an imperative or named a specific
+  technique. `advisory` needs its reason recorded in this row.
+- `Divergence record` stays `NONE` unless the delivered route, depth, or format departs
+  from a `binding` row; then it names what was delivered instead and why.
+
 ## Logical Shape
 - Requested result: proof | counterexample | obstruction | computation | classification | other
 - Main assertion form: implication | equivalence | characterization | existence | uniqueness | construction | equality | inequality | other
@@ -73,6 +88,8 @@ NONE
 ## Review Questions
 
 - Does the proof target the main assertion, not just a nearby displayed formula?
+- Does the delivered route, depth, and format satisfy every `binding` row of
+  Requested Form, or does a Divergence record say what was delivered instead and why?
 - Does the proposed terminal result match the accepted answer polarity and its
   stated resolution criteria?
 - If the target is an equivalence or characterization, are all required

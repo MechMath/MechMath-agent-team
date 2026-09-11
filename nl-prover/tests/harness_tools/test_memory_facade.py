@@ -120,8 +120,10 @@ class MemoryFacadeTests(unittest.TestCase):
             cand = ws / "memory" / "candidates"
             cand.mkdir(parents=True)
             (cand / "verifier-run1.jsonl").write_text(
-                '{"kind":"negative-constraint","statement":"Do not divide by zero.","trigger":"div"}\n'
-                '{"kind":"negative-constraint","statement":"do not  divide by zero.","trigger":"dup"}\n'
+                '{"kind":"negative-constraint","statement":"Do not divide by zero.","trigger":"div",'
+                '"why":"the divisor may vanish","failure_modes":"noisy once nonzero is known"}\n'
+                '{"kind":"negative-constraint","statement":"do not  divide by zero.","trigger":"dup",'
+                '"why":"same","failure_modes":"same"}\n'
                 '{"no_constraint":"nothing generalizable"}\n',
                 encoding="utf-8",
             )
@@ -152,6 +154,64 @@ class MemoryFacadeTests(unittest.TestCase):
             self.assertEqual([], result["promoted"])
             self.assertEqual(1, len(result["already_present"]))
             self.assertEqual(1, len(list((root / "memory" / "experience").glob("*.md"))))
+
+    def test_candidate_writer_appends_a_valid_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp) / "ws"
+            (ws / "memory").mkdir(parents=True)
+            out = memory.write_candidate(
+                ws,
+                agent="verifier",
+                run_id="r1",
+                fields={
+                    "kind": "negative-constraint",
+                    "statement": "Do not divide by a possibly-zero coefficient.",
+                    "trigger": "polynomial division step",
+                    "why": "the coefficient may vanish",
+                    "failure_modes": "noisy once nonzero is established",
+                    "scope": "class-level",
+                },
+            )
+            self.assertTrue(out["ok"])
+            self.assertEqual(1, out["lines"])
+            written = Path(out["written"])
+            self.assertTrue(written.name.endswith("verifier-r1.jsonl"))
+
+    def test_candidate_writer_refuses_an_invalid_card(self):
+        """Refused where it is written, not skipped weeks later at aggregation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp) / "ws"
+            (ws / "memory").mkdir(parents=True)
+            out = memory.write_candidate(
+                ws, agent="verifier", run_id="r1",
+                fields={"kind": "negative-constraint", "statement": "x", "trigger": "y"},
+            )
+            self.assertFalse(out["ok"])
+            self.assertIsNone(out["written"])
+            self.assertTrue(any("why" in p for p in out["problems"]))
+
+    def test_candidate_writer_refuses_an_unknown_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp) / "ws"
+            (ws / "memory").mkdir(parents=True)
+            out = memory.write_candidate(
+                ws, agent="verifier", run_id="r1",
+                fields={"statement": "s", "trigger": "t", "why": "w",
+                        "failure_modes": "f", "confidence": "high"},
+            )
+            self.assertFalse(out["ok"])
+            self.assertTrue(any("confidence" in p for p in out["problems"]))
+
+    def test_no_constraint_marker_goes_through_the_same_door(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp) / "ws"
+            (ws / "memory").mkdir(parents=True)
+            out = memory.write_candidate(
+                ws, agent="regulator", run_id="r2",
+                fields={"no_constraint": "the failure was a typo in a path"},
+            )
+            self.assertTrue(out["ok"])
+            self.assertEqual("no_constraint", out["kind"])
 
     def test_aggregate_candidates_rejects_a_card_with_no_trigger(self):
         # No trigger means it can never be recalled, so storing it would grow

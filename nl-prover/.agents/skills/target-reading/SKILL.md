@@ -20,6 +20,8 @@ or counterexample.
   a counterexample/obstruction.
 - Verifier: compare the submitted proof or obstruction against the target
   contract during statement-preservation and problem-reading audits.
+- Synthesizer: read Requested Form before ranking candidate routes. A route that
+  contradicts a `binding` method row is not ranked against the others; it is returned.
 - Auditor: resolve specialized notation, named constructions,
   boundary conventions, and accepted readings when the target contract cannot
   normalize them from local context.
@@ -30,27 +32,32 @@ or counterexample.
    the whole target.
 2. Build `sketch/target_contract.md` from
    [reference-target-contract.md](reference-target-contract.md).
-3. Classify the logical shape: implication, equivalence, characterization,
+3. Fill Requested Form. Read the whole problem file and any accompanying note, not
+   only the displayed mathematics: a requirement about method, level of detail,
+   length, notation, or venue arrives as prose, most often in a remark or a covering
+   message. Record each one verbatim with its Standing. If none is stated anywhere,
+   write `NONE stated`.
+4. Classify the logical shape: implication, equivalence, characterization,
    classification, existence, uniqueness, construction, computation, or another
    explicit form.
-4. Record the answer polarity and terminal evidence needed to settle it. For
+5. Record the answer polarity and terminal evidence needed to settle it. For
    example, an existential question needs a witness and verification, a
    universal claim needs a proof for an arbitrary object or a counterexample
    to the universal statement, and a nonexistence claim needs a proof that no
    admissible object exists. If wording such as "possible" or "can" has more
    than one defensible reading, record the selected reading and why; if the
    reading cannot be fixed from context, route it as an open obligation.
-5. For each displayed condition, formula, named object, or named construction,
+6. For each displayed condition, formula, named object, or named construction,
    record its role: hypothesis, definition, equivalent condition, conclusion,
    auxiliary notation, or unresolved definition obligation.
-6. If the theorem is an equivalence or characterization, assign proof ownership
+7. If the theorem is an equivalence or characterization, assign proof ownership
    for each direction. A counterexample must name the direction it refutes and
    satisfy the hypotheses for that direction under the accepted definitions.
-7. If a named or canonical construction is used, record the accepted
+8. If a named or canonical construction is used, record the accepted
    construction rule or a source-definition obligation. Do not replace it with a
    convenient object unless an object bridge proves the replacement is the same
    object for the target.
-8. Route unresolved target shape, definition, construction semantics, or answer
+9. Route unresolved target shape, definition, construction semantics, or answer
    polarity as an open obligation. Use Auditor for notation,
    construction, or convention blockers; Sketcher for DAG/target-shape repair;
    Regulator when the owner is unclear; and Human only when accepted context
@@ -59,6 +66,9 @@ or counterexample.
 
 ## Hard Stops
 
+- Do not widen a `binding` Requested Form row into a disjunction that admits a route,
+  depth, or format the asker did not name. "Use X" does not become "X or anything
+  comparable", and a binding requirement does not become a strategy hint.
 - Do not refute an isolated displayed condition when the target is a conditional
   theorem, equivalence, characterization, or definition involving that
   condition.

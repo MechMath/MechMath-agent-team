@@ -31,7 +31,7 @@ STATEMENT_KINDS = {"theorem", "lemma", "axiom"}
 DECL_RE = re.compile(
     r"(?m)^[ \t]*(?:(?:private|protected|noncomputable|unsafe|partial)\s+)*"
     r"(?P<kind>theorem|lemma|def|abbrev|instance|class|structure|inductive|axiom|opaque)"
-    r"(?:\s+(?P<name>[A-Za-z_][\w'.]*))?"
+    r"(?:\s+(?P<name>[^\W\d][\w']*(?:\.[^\W\d][\w']*)*))?"
 )
 
 IMPORT_RE = re.compile(r"(?m)^[ \t]*import\s+(?P<module>[A-Za-z0-9_.]+)")

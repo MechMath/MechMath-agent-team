@@ -26,6 +26,8 @@ import re
 import sys
 from pathlib import Path
 
+from _gate import waiver
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _workspace import ledger as _ledger  # noqa: E402
 
@@ -40,6 +42,20 @@ STOPWORDS = {
     "that", "this", "we", "let", "then", "there", "exists", "every", "all", "any",
     "such", "if", "be", "by", "on", "as", "it", "its", "has", "have", "which",
 }
+
+
+REQUIREMENT = waiver.requirement_text(
+    checks='citation integrity in the final article: resolvable references, and disclosure\nof mathematical content supplied from outside the run.',
+    legal='externally supplied mathematics is a provenance fact, not run history, and\nmust survive into reader-facing output',
+    fix='Add the citation, or disclose the external source.',
+)
+
+# Wording that says content came from outside this run.
+EXTERNAL_SUPPLY = re.compile(
+    r"\b(?:imported|externally supplied|supplied externally|external manuscript|"
+    r"external package|provided by the human|human-supplied)\b",
+    re.IGNORECASE,
+)
 
 
 def cited_keys(tex: str) -> set[str]:
@@ -136,18 +152,49 @@ def audit(workspace: str | Path, tex_path: str | Path) -> dict:
                 )
                 break
 
+    # 5. externally supplied mathematics must survive into reader-facing output.
+    #    Stripping agent run history is correct; stripping "the core came from
+    #    outside this run" is not. That is a provenance fact, not run history,
+    #    and one run lost it exactly this way: ~20 occurrences of "imported" in
+    #    proof.tex, 0 in the article, with the source never stated (ADR 0023 Q.3).
+    proof_path = Path(workspace) / "proof.tex"
+    if proof_path.exists() and proof_path != tex_path:
+        try:
+            proof_tex = proof_path.read_text(encoding="utf-8")
+        except OSError:
+            proof_tex = ""
+        if EXTERNAL_SUPPLY.search(proof_tex) and not EXTERNAL_SUPPLY.search(tex):
+            errors.append(
+                "proof.tex discloses externally supplied mathematics but "
+                f"{tex_path.name} does not. External supply is a provenance fact, "
+                "not run history: disclose where the content came from."
+            )
+
     return {"ok": not errors, "errors": errors, "warnings": warnings,
             "cited": sorted(cited), "defined": sorted(defined)}
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Final-article citation audit (ADR 0019 §5)")
+    parser = argparse.ArgumentParser(description="Final-article citation audit (ADR 0019 §5)",
+        epilog=REQUIREMENT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("workspace")
     parser.add_argument("--tex", required=True, help="article/proof .tex (absolute or workspace-relative)")
     parser.add_argument("--json", action="store_true")
+    waiver.add_waiver_arg(parser)
     args = parser.parse_args(argv)
 
     result = audit(args.workspace, args.tex)
+    # Waive first, then report. Reporting first published a verdict computed
+    # before the waiver was applied, so `--json` and the human output could
+    # disagree about `ok` on the same run.
+    errs, waived = waiver.apply_waiver(
+        list(result.get("errors", [])), args.waive, gate="citation-audit",
+        workspace=args.workspace,
+    )
+    result["errors"], result["waived"] = errs, waived
+    result["ok"] = not errs
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
@@ -156,6 +203,14 @@ def main(argv=None):
             print(f"ERROR: {e}")
         for w in result["warnings"]:
             print(f"WARNING: {w}")
+        waiver.print_waived(waived, args.waive or "")
+    if errs and not args.json:
+        # Prose after a JSON document makes the document unparseable exactly
+        # when it carries something to report. Six of the ten gates did this;
+        # only the ones that happened to pass on the workspace they were tried
+        # against looked healthy.
+        print()
+        print(REQUIREMENT)
     return 0 if result["ok"] else 1
 
 

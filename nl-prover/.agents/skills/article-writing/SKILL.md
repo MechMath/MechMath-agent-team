@@ -17,6 +17,7 @@ LaTeX prose without changing the mathematics.
 | Ground mathematical claims and citations | [mathematical-grounding.md](references/mathematical-grounding.md) |
 | Rewrite a local passage | [local-revision.md](references/local-revision.md) |
 | Explain unfinished/restartable state (mandatory before any non-proof stop) | [progress-note.md](references/progress-note.md) |
+| Say where the run stands, for a **person** (same stop, second file) | [progress-summary-example.md](references/progress-summary-example.md) |
 | Build a full research-note/paper or complete-proof candidate | [latex-research-note-template.md](references/latex-research-note-template.md) |
 
 For full article or complete-proof candidates, read `style-profile.md`,
@@ -27,6 +28,20 @@ For local rewrites, read `style-profile.md`, `mathematical-grounding.md`, and
 
 For progress notes, read `mathematical-grounding.md` and `progress-note.md`;
 read `style-profile.md` only if the note must match an existing document.
+
+A non-proof stop writes **two** documents and they are not versions of each
+other. `writer/progress_notes.tex` is the restart document: its reader is the
+next run, it carries full proofs, and it has no length cap.
+`writer/progress_summary.tex`, exported to `progress_summary.pdf` at the
+workspace root, is for the person deciding what to do about this run: seven
+fixed sections opening with the problem statement, the blocker third, at most
+300 body lines and 10 pages, every established result written out as statement +
+sketch + path, no harness vocabulary, every coined term defined. Both are LaTeX and both
+are compiled — the summary is the one a person opens, so it is the one that most
+needs typesetting. Read `progress-summary-example.md` for
+the shape and `gate summary <workspace>` for what is checked. The contrast
+between the two is tabulated at the end of `progress-note.md` — do not merge
+them, and do not shorten the note to satisfy the summary's cap.
 
 ## Core Rules
 

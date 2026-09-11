@@ -134,6 +134,60 @@ When adding one:
 - Never define a concept as `True`, `False`, an empty structure with no
   semantics, or a predicate designed only to make a statement compile.
 
+### Never `axiom`, never `opaque` — and what to write instead
+
+These are the two kinds that make the previous rule easy to break without noticing,
+because both compile, both look deliberate, and neither leaves a warning.
+
+- `axiom foo : P` **asserts** what you were asked to state. If `P` is the source's
+  own claim, the formalization of it is `theorem foo : P := by sorry` — an
+  obligation with an owner. An `axiom` is that obligation deleted.
+- `opaque f : A → B` names an object and seals its definition. Nothing downstream
+  can unfold it, so no theorem mentioning `f` can be proved *or refuted* from what
+  `f` is. A statement about a sealed constant is not the source's statement.
+
+The temptation is real and it is not laziness: the source names an object Mathlib
+does not have, and `opaque` makes the sentence typecheck today. The faithful move
+is to say what characterises the object, not to hide that you cannot construct it.
+
+- **Characterised by properties, not by a formula** → a `structure` (or `class`)
+  whose fields are the data **and its defining properties**, taken as a hypothesis:
+
+  ```lean
+  structure IsKloostermanSum (K : ℕ → ℕ → ℂ) : Prop where
+    ...the properties SS XI.34 actually gives...
+
+  theorem foo (K : ℕ → ℕ → ℂ) (hK : IsKloostermanSum K) : ...
+  ```
+
+  Now the theorem is about *every* object with that characterisation, which is what
+  the source means, instead of about one constant nobody can reason about.
+- **The source gives a construction** → a `def` with the real definition.
+- **The source asserts something** → `theorem … := by sorry`.
+- Cheaper than either, when the object appears once: leave it a plain `variable`
+  parameter with its properties as hypotheses. `opaque` buys nothing over that and
+  costs unfoldability.
+
+A genuine external-theory boundary — a cited theorem the project has decided not to
+formalize — remains legal, and stays exactly as legal as it was: it needs a recorded
+boundary, and it is reported, not assumed silently. That is the human's call to make,
+not a default you take while formalizing.
+
+Two encodings that are the same violation wearing a different keyword:
+
+- `def f : A → B := sorry` — an `opaque` spelled differently.
+- `opaque f : A → B := fun _ => 0` — a sealed shell: it claims an object and is
+  defined as a constant.
+
+Mechanical check, on every file you touch:
+
+```bash
+uv run python cli_tools/lean.py axioms FILE
+```
+
+It reports what the file *declares*, not only what its proofs depend on, and exits
+non-zero on an assumption that is not in `--allow`.
+
 ## Output Quality
 
 - Preserve source text as a docstring when the project convention calls for it.

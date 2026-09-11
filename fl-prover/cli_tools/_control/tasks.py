@@ -10,6 +10,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+# One vocabulary for both writers. `set-status` used to take a bare positional with no
+# `choices`, and that is how 16 distinct status tokens — three of them spellings of
+# 'proved' — got into `proof_tasks.json`. See `_dag/store.py`.
+#
+# This import block sat ABOVE `from __future__ import annotations` for one commit, which
+# is a SyntaxError, and it killed BOTH `lean.py` and `control.py` outright — every gate,
+# the whole task ledger. The test suite reported 160 passing over two dead facades,
+# because it imports neither module. A suite that cannot see the facades is the same
+# defect as a suite that collects 7 of 172 tests, one layer out.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _dag.store import Rejected as _Rejected, normalise_status as _norm  # noqa: E402
+
 
 # Paper §2.1: the Orchestrator is the sole ledger writer. Specialists —
 # Integrator included — request ledger changes through their reports.
@@ -144,7 +156,7 @@ def cmd_add(args: argparse.Namespace) -> None:
     task = {
         "id": args.id,
         "kind": args.kind,
-        "status": args.status,
+        "status": _checked_status(args.status),
         "priority": args.priority,
         "target_file": args.file,
         "declaration": args.decl,
@@ -163,13 +175,21 @@ def cmd_add(args: argparse.Namespace) -> None:
     print(f"added task: {args.id}")
 
 
+def _checked_status(token: str) -> str:
+    try:
+        return _norm(token)
+    except _Rejected as exc:
+        print(f"REFUSED\n{exc}", file=_sys.stderr)
+        raise SystemExit(2) from None
+
+
 def cmd_set_status(args: argparse.Namespace) -> None:
     actor = require_actor(args.actor)
     data = load_ledger(args.workspace)
     task = find_task(data, args.task_id)
-    task["status"] = args.status
+    task["status"] = _checked_status(args.status)
     save_ledger(args.workspace, data, actor)
-    print(f"{args.task_id}: status={args.status}")
+    print(f"{args.task_id}: status={task['status']}")
 
 
 def cmd_set_owner(args: argparse.Namespace) -> None:

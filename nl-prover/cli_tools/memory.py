@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -182,6 +183,59 @@ def _normalize(text: str) -> str:
 PROMOTION_RECEIPT = "candidates_promoted.json"
 
 
+def write_candidate(
+    workspace: Path,
+    *,
+    agent: str,
+    run_id: str,
+    fields: dict[str, Any],
+) -> dict[str, Any]:
+    """Append one candidate card to `memory/candidates/<agent>-<run_id>.jsonl`.
+
+    This is the safe writer, and it exists for the same reason
+    `_workspace/ledger.py` has one: agents should never hand-edit raw JSONL. The
+    routing skill used to ask each specialist to append a JSON object itself,
+    with the schema documented only in a code fence beside the instruction —
+    the one ledger in the harness whose format lived nowhere a machine could
+    check it. A malformed line is not rejected at the point it is written; it is
+    silently skipped at aggregation, weeks later, by which time the run that
+    knew the lesson is over.
+
+    A `no_constraint` marker goes through the same door: it is the explicit
+    "this failure taught nothing transferable", and `gate stop` checks that one
+    or the other is present.
+    """
+    problems = [] if fields.get("no_constraint") else _exp.validate_card(fields)
+    if problems:
+        return {"ok": False, "problems": problems, "written": None}
+
+    unknown = sorted(
+        set(fields) - set(_exp.FRONTMATTER_KEYS) - {"no_constraint"}
+    )
+    if unknown:
+        return {
+            "ok": False,
+            "problems": [
+                f"unknown field(s) {', '.join(unknown)}; allowed: "
+                + ", ".join(_exp.FRONTMATTER_KEYS + ("no_constraint",))
+            ],
+            "written": None,
+        }
+
+    cand_dir = _local.memory_dir(workspace) / "candidates"
+    cand_dir.mkdir(parents=True, exist_ok=True)
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "-", f"{agent}-{run_id}").strip("-") or "candidate"
+    path = cand_dir / f"{safe}.jsonl"
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(fields, ensure_ascii=False) + "\n")
+    return {
+        "ok": True,
+        "written": str(path),
+        "lines": sum(1 for _ in path.open(encoding="utf-8")),
+        "kind": "no_constraint" if fields.get("no_constraint") else fields.get("kind", ""),
+    }
+
+
 def aggregate_candidates(
     workspace: Path,
     *,
@@ -280,6 +334,31 @@ def aggregate_candidates(
 
 # --- CLI -------------------------------------------------------------------
 
+def read_budget(workspace: Path) -> dict[str, Any]:
+    """Bytes the Orchestrator re-reads at the start of every round.
+
+    This is the same measurement `gate.py speed` reports, deliberately calling
+    the same function rather than reimplementing it: two copies of a threshold
+    drift, and then two tools disagree about whether a run is over budget. This
+    entry point exists because the Orchestrator already has `memory.py` in hand
+    at step 1 and should be able to check the number before deciding what to read,
+    not only at the gate afterwards.
+    """
+    from _gate.speed import DEFAULT_READ_BUDGET_KB, required_read_bytes
+
+    total, breakdown = required_read_bytes(workspace)
+    budget = DEFAULT_READ_BUDGET_KB * 1024
+    largest = max(breakdown.items(), key=lambda kv: kv[1], default=(None, 0))
+    return {
+        "workspace": str(workspace),
+        "bytes": total,
+        "budget_bytes": budget,
+        "over_budget": total > budget,
+        "largest": {"path": largest[0], "bytes": largest[1]},
+        "breakdown": breakdown,
+    }
+
+
 def main() -> None:
     # inbox-write and card-lint have their own full argparse in the memory
     # package; forward to them so `memory.py` stays the single memory entry.
@@ -322,11 +401,41 @@ def main() -> None:
     p_app.add_argument("--view", choices=VIEW_CHOICES, default="compact")
     p_app.add_argument("--format", choices=FORMAT_CHOICES, default="json")
 
+    p_bud = sub.add_parser(
+        "budget",
+        help="report the bytes the Orchestrator re-reads at the start of every round",
+    )
+    p_bud.add_argument("workspace")
+    p_bud.add_argument("--format", choices=FORMAT_CHOICES, default="json")
+
     p_rl = sub.add_parser("render-longterm", help="render memory.md from KB Experience_* cards")
     p_rl.add_argument("--data-dir", default=None)
     p_rl.add_argument("--memory-file", default=None)
     p_rl.add_argument("--force", action="store_true", help="overwrite even when render would empty a non-empty memory.md")
     p_rl.add_argument("--format", choices=FORMAT_CHOICES, default="json")
+
+    p_cd = sub.add_parser(
+        "candidate",
+        help="write one candidate card (the safe writer; do not hand-edit the JSONL)",
+    )
+    p_cd.add_argument("workspace")
+    p_cd.add_argument("--agent", required=True, help="the specialist that learned it")
+    p_cd.add_argument("--run-id", required=True)
+    p_cd.add_argument("--kind", choices=_exp.CARD_KINDS, default="negative-constraint")
+    p_cd.add_argument("--statement", help="what was learned, one line")
+    p_cd.add_argument("--trigger", help="the structural cue that should bring it back")
+    p_cd.add_argument("--why", help="the conditions under which it applies")
+    p_cd.add_argument("--failure-modes", help="when this card itself misleads")
+    p_cd.add_argument("--scope", choices=_exp.CARD_SCOPES, default="class-level")
+    p_cd.add_argument("--provenance", default=None)
+    p_cd.add_argument("--refs", default=None)
+    p_cd.add_argument(
+        "--no-constraint",
+        default=None,
+        metavar="REASON",
+        help="this failure carries no transferable lesson, and why",
+    )
+    p_cd.add_argument("--format", choices=FORMAT_CHOICES, default="json")
 
     p_ag = sub.add_parser(
         "aggregate-candidates", help="dedup candidate cards into the long-term tier and re-render memory.md"
@@ -371,6 +480,33 @@ def main() -> None:
         emit(_envelope("local", args.view, payload), fmt=args.format)
     elif args.command == "render-longterm":
         emit(render_longterm(memory_file=memory_file, force=args.force), fmt=args.format)
+    elif args.command == "budget":
+        emit(read_budget(workspace_path(args.workspace)), fmt=args.format)
+    elif args.command == "candidate":
+        if args.no_constraint:
+            fields: dict[str, Any] = {"no_constraint": args.no_constraint}
+        else:
+            fields = {
+                "kind": args.kind,
+                "statement": args.statement or "",
+                "trigger": args.trigger or "",
+                "why": args.why or "",
+                "failure_modes": args.failure_modes or "",
+                "scope": args.scope,
+            }
+            if args.provenance:
+                fields["provenance"] = args.provenance
+            if args.refs:
+                fields["refs"] = args.refs
+        payload = write_candidate(
+            workspace_path(args.workspace),
+            agent=args.agent,
+            run_id=args.run_id,
+            fields=fields,
+        )
+        emit(payload, fmt=args.format)
+        if not payload["ok"]:
+            raise SystemExit(1)
     elif args.command == "aggregate-candidates":
         emit(
             aggregate_candidates(

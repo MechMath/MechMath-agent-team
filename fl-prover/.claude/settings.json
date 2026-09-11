@@ -24,10 +24,24 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(uv run python cli_tools/dag.py:*)"
     ],
     "deny": [
       "Bash(rm:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task|SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch_guard.py\""
+          }
+        ]
+      }
     ]
   }
 }

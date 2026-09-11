@@ -112,6 +112,20 @@ a human-requested pause): compile `writer/progress_notes.tex` from `writer/` and
 copy the resulting PDF to the workspace root as `progress_notes.pdf`. A progress
 PDF must state that it is not a final proof or obstruction.
 
+The same stop owes a second compiled document: `writer/progress_summary.tex`,
+compiled from `writer/` and copied to the workspace root as
+`progress_summary.pdf`. It is the one a person opens, and it is capped — 300
+body lines, 32 KB, 10 pages, checked by `gate summary`. Do not point both
+documents at one file and do not shorten the note to fit the summary's cap; the
+note's length is what buys restartability (ADR 0021). Its format SSOT is the
+Progress Summary section of `prompts/writer.md`, with the worked example at
+`.agents/skills/article-writing/references/progress-summary-example.md`.
+
+The summary needs `\path` for the one path each established result cites. If
+the preamble does not load a package providing it, define it:
+`\providecommand{\path}[1]{\texttt{#1}}`. `gate summary` exempts marked-up
+paths from its vocabulary scan and cannot exempt a path written as bare prose.
+
 Note on names: `proof.pdf` is the Writer export, not a compilation product of the
 authoritative `proof.tex`. Never compile `proof.tex` into the workspace root, or
 it will overwrite the export.

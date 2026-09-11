@@ -1,6 +1,6 @@
 ---
 name: memory-routing
-description: "Use when deciding where a new piece of knowledge belongs: which of the three memory tiers a result/observation/lesson enters, or whether to write the KB inbox vs the local workspace tier vs the long-term negative-constraint list. Trigger on 'record this', 'remember this', 'should this go to memory / the KB / memory.md', a verifier FAIL or human correction that yields a reusable lesson, or a proven fact worth keeping."
+description: "Use when deciding where a new piece of knowledge belongs: which of the three memory tiers a result/observation/lesson enters, or whether to write the KB inbox vs the local workspace tier vs the long-term memory. Trigger on 'record this', 'remember this', 'should this go to memory / the KB / memory.md', a verifier FAIL or human correction that yields a reusable lesson, or a proven fact worth keeping."
 ---
 
 # Memory Routing
@@ -62,38 +62,79 @@ otherwise -> do not memorize (transient noise).
 
 ## Emitting a long-term candidate card (P1)
 
-On a `verifier` FAIL, `regulator` classification, `ce-hunter` obstruction, or a
-human correction, the responsible specialist appends a candidate card (one JSON
-object per line) to a managed artifact:
+Write a card whenever a run produces something that could apply to another
+problem. Two occasions, weighted equally:
 
-```
-memory/candidates/<agent>-<runid>.jsonl
+- **A route worked.** A mechanism, a way of choosing coordinates, a duality, a
+  reduction, an identification of what an object really is — anything you would
+  want to be reminded of on a similar problem.
+- **A route failed** in a way that generalises: a `verifier` FAIL, an obstruction,
+  a human correction.
+
+The second occasion is the only one earlier versions of this file described, and
+the resident tier ended up 100% prohibitions as a result. It is not a prohibition
+list; it is memory.
+
+**Admission test, and the only one:** could this be useful on a different
+problem? Everything else — how the run went, what the artifact was called, how
+confident you are — is irrelevant to it. Content that only makes sense on this
+problem is written with `scope: this-problem-only`: it stays on disk and stays
+retrievable, but does not enter the every-cycle read set.
+
+The responsible specialist records a candidate card **through the tool**:
+
+```bash
+uv run python cli_tools/memory.py candidate <workspace> \
+  --agent verifier --run-id <runid> \
+  --kind negative-constraint \
+  --statement "<what was learned, one line>" \
+  --trigger  "<structural cue that should bring it back>" \
+  --why      "<the conditions under which it applies>" \
+  --failure-modes "<when this card itself misleads>" \
+  --scope class-level
 ```
 
-Card fields (Experience_* schema, ADR 0017 §2 — pointers, never inline
-statements):
+It appends to `memory/candidates/<agent>-<runid>.jsonl` and validates before it
+writes. **Do not hand-edit that file.** It used to be written by hand — the one
+ledger in the harness whose format lived only in a code fence beside the
+instruction. A malformed line is not refused where it is written; it is silently
+skipped at aggregation, after the run that knew the lesson is over.
 
-```json
-{"kind": "negative-constraint", "statement": "<one-line boundary>",
- "trigger": "<structural cue to recall it>", "why": "<failure it prevents>",
- "failure_modes": "<when this card itself misleads>",
- "provenance": ["verifier-block"], "scope": "general", "refs": ["[[Concept_X]]"]}
-```
+`kind` is `transferable-idea` or `negative-constraint`; `scope` is `class-level`
+or `this-problem-only`. Only `class-level` is rendered into the resident
+`memory.md`.
+
+`trigger`, `why` and `failure_modes` are all required, and the tool refuses a
+card without them. A card that cannot be recalled only makes the resident file
+longer. A card that cannot say **when it applies** fires on the wrong problem,
+and one that cannot say **when it misleads** is a prohibition nobody can ever
+argue with — which is how a growing list of "do not" closes off the search.
+
+Fields are pointers, never inline statements (Experience_* schema, ADR 0017 §2);
+use `--refs "[[Concept_X]]"` rather than quoting a theorem.
 
 If the FAIL/obstruction/correction yields nothing generalizable, record that
-explicitly instead (this satisfies the production-side lint):
+explicitly instead — same tool, and it satisfies the production-side lint:
 
-```json
-{"no_constraint": "<why this failure has no transferable lesson>"}
+```bash
+uv run python cli_tools/memory.py candidate <workspace> \
+  --agent verifier --run-id <runid> \
+  --no-constraint "<why this failure has no transferable lesson>"
 ```
 
 Before **every** stop — not only a completed proof — the Orchestrator promotes
-the candidates, then clears the stop gate:
+the candidates. That is this skill's step, and it is one of seven:
 
 ```
 uv run python cli_tools/memory.py aggregate-candidates <workspace>
-uv run python cli_tools/gate.py stop <workspace> [--verified-proof]
 ```
+
+**The full pre-stop sequence lives in
+`.agents/skills/nl-prover/references/stop-conditions.md` and is not restated
+here.** This block used to carry a two-step version — promote, then `gate stop`
+— which omitted `memory.py refresh`. A run following it verbatim fails `gate
+stop` on index freshness, caused by the step the shortcut dropped. A sequence
+worth abbreviating is a sequence worth linking to.
 
 `aggregate-candidates` dedups the run's cards, dedups them again against the
 cards already in `memory/experience/`, writes the survivors there, and re-renders

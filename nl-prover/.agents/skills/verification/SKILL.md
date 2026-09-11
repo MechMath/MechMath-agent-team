@@ -7,7 +7,19 @@ description: "Cross-verification tools for independently scoring proof quality v
 
 Independent verification tools and checklists for proof quality. External scoring scripts are in `cli_tools/`.
 
-> **Verifier responsibility** — Verifiers use these tools and checklists when judging a proof. Generators must not use verification tools to approve their own work.
+> **Verifier responsibility** — Verifiers use these tools and checklists when
+> judging a proof. **Generators must not use verification tools to approve their
+> own work**, and no producer's own judgement is a verdict.
+>
+> Starting a check is not approving one. A Generator or Sketcher may run
+> `cli_tools/verify.py`, which assembles a dispatch from paths and hands the
+> artifact to a **fresh, cold-start** Verifier that the producer cannot see into
+> and whose verdict it cannot edit — the packet lands in the Verifier-owned
+> directory, which the producer still may not write. The verdict is the
+> Verifier's, exactly as when the Orchestrator dispatches one; what changed is
+> who picks up the phone. What remains forbidden is a producer scoring its own
+> proof, arguing with the packet in the proof file, or treating its own
+> confidence as an outcome.
 
 ## Available Tools
 
@@ -15,8 +27,55 @@ Independent verification tools and checklists for proof quality. External scorin
 |------|---------|-------------|
 | **gemini-verify** | Score a proof using Gemini via OpenRouter or direct Gemini API | When `OPENROUTER_API_KEY` or `GEMINI_API_KEY` is set |
 | **gpt-verify** | Score a proof using GPT-5.5 Pro via OpenRouter or direct OpenAI API | When `OPENROUTER_API_KEY` or `OPENAI_API_KEY` is set |
+| **`cli_tools/verify.py`** | Assemble one verification dispatch from paths and enums, and either print it for a Verifier subagent or run it against a cold-start verifier | Every ordinary per-artifact check in `certification`. Never in `discovery` — discovery output discharges no obligation, so a verdict on it is a category error |
 
 > **No API key?** The Verifier skips external cross-verification and performs the same 0/0.5/1 rubric internally.
+
+### `verify.py dispatch`
+
+```bash
+uv run python cli_tools/verify.py dispatch <lemmas/L3/proof_v2.md> \
+    --statement <lemmas/L3/statement.md> \
+    --problem <problem.md> \
+    --output-dir <lemmas/L3/verifier> \
+    --mode certification \
+    --verification-mode lemma \
+    --version 2 \
+    --dependency <lemmas/L1/statement.md>:PASS \
+    --dependency <lemmas/L2/statement.md>:NEEDS_REVISION \
+    --context <queries/source-theorem-package.md> \
+    --budget-minutes 30 --stop-when packet-written \
+    --workspace <problem_workspace>
+```
+
+`--verification-mode` is one of `lemma`, `target_obstruction`, `plan_logic`,
+`global_refinement`, and names the single mode file the Verifier reads — reading
+all of them costs about 9 KB a dispatch and only one can apply. `--dependency`
+takes `PATH[:PASS|NEEDS_REVISION|none]`: the state, never the reasoning behind
+it. `--stop-when` is `packet-written`, `blocking-issue-found`, or
+`budget-exhausted`.
+
+**Independence here is structural, not a matter of discipline.** Across 87
+verification dispatches, 100% told the Verifier it was a fresh, stateless,
+independent referee and 84% supplied, in the same prompt, the thing independence
+excludes — 57% the Generator's own account of its work, 45% what earlier
+verifiers concluded. A contract stated and violated five times in six is not a
+wording problem, so every parameter above is a path or an enum: there is no
+argument that can carry a prior verdict, a confidence, a defence of the artifact,
+or "the Generator reports that". Not forbidden — there is nowhere to put it. A
+concern that still matters travels inside the artifact, as a question about the
+mathematics ("does Step 14 need n >= 3?"), never as a verdict about a document.
+
+**Both routes are the same text.** `_verify/dispatch.py` renders it once. With
+`--run` it executes against the cold-start verifier named in
+`NLPROVER_VERIFIER_CMD` (e.g. `claude -p --permission-mode acceptEdits`, or
+`codex exec`), fed on stdin; without `--run` it prints exactly what the
+Orchestrator hands to a Verifier subagent. Equivalence by construction rather
+than by audit. `--run` with no `NLPROVER_VERIFIER_CMD` refuses and says so — a
+verification that did not happen must not look like one that passed. Pass
+`--workspace` either way so the dispatch is recorded in `logs/dispatch.jsonl`
+with the same `prompt_shape` the hook computes, which is what lets
+`gate.py speed` put a number on the claim.
 
 ## Single-Packet Verification
 
@@ -31,8 +90,16 @@ A Verifier writes:
 ```text
 report_v<N>.md
 review_packet_v<N>.md
-verdict.md
+verdict_v<N>.md
 ```
+
+**Write the versioned name.** Both forms exist in the corpus — 352 `verdict.md`
+against 118 `verdict_v<N>.md` — and `gate dag` reads both, preferring the
+versioned one (`_gate/dag.py`, `VERDICT_VERSION`). `cli_tools/verify.py` emits
+the versioned name. The unversioned name is not wrong, it is lossy: a
+re-verification overwrites the verdict it was re-checking, and invariant 15 —
+a PASS applies only to the artifact it checked — is unauditable afterwards. The
+version is what lets `dag` tell a re-issue from a first verdict.
 
 Run the packet shape lint before using a passing packet for merge,
 refined-proof adoption, plan adoption, or obstruction acceptance:

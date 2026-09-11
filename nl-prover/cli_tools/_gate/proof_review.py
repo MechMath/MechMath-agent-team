@@ -15,6 +15,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from _gate import waiver
+
 
 REQUIRED_SECTIONS = [
     "Target Reading Check",
@@ -104,6 +106,12 @@ class ProofReviewLintResult:
     def ok(self) -> bool:
         return not self.errors
 
+
+REQUIREMENT = waiver.requirement_text(
+    checks='that a proof-review routing artifact carries exactly one valid decision and\ndoes not turn missing context into a terminal result.',
+    legal='required sections must all be present; the decision must be one of the\ndocumented dispositions',
+    fix='Add the missing section, or route the missing context as restart state\ninstead of a terminal claim.',
+)
 
 def canonical(name: str) -> str:
     return re.sub(r"\s+", " ", name.strip()).casefold()
@@ -337,7 +345,9 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Check that a proof-review routing artifact has one valid decision "
             "and does not turn missing context into a terminal result."
-        )
+        ),
+        epilog=REQUIREMENT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("proof_review", type=Path, help="Path to proof_review.md")
     parser.add_argument(
@@ -345,12 +355,21 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print machine-readable lint output.",
     )
+    waiver.add_waiver_arg(parser)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     result = lint_file(args.proof_review)
+    # Waive before reporting. Reporting first published a verdict computed
+    # before the waiver was applied, so `--json` listed errors the waiver
+    # had already excused and carried an `ok` that disagreed with the
+    # human output on the same run. The two views are one computation.
+    result.errors, _waived = waiver.apply_waiver(
+        result.errors, args.waive, gate="proof-review",
+        workspace=None,
+    )
     if args.json:
         print(
             json.dumps(
@@ -373,6 +392,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"WARNING: {warning}")
         if result.selected_status:
             print(f"Selected status: {result.selected_status}")
+    if not args.json:
+        waiver.print_waived(_waived, args.waive or "")
+    if result.errors and not args.json:
+        # Prose after a JSON document makes the document unparseable exactly
+        # when it carries something to report. Six of the ten gates did this;
+        # only the ones that happened to pass on the workspace they were tried
+        # against looked healthy.
+        print()
+        print(REQUIREMENT)
     return 0 if result.ok else 1
 
 

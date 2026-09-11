@@ -5,13 +5,17 @@ informal proof workflow through files and maintain the authoritative
 `proof.tex`.
 
 > **Dual-harness note.** This repository ships two harnesses over the *same*
-> `prompts/`, `cli_tools/`, and skills: the Codex harness (`AGENTS.md` +
+> `prompts/`, `cli_tools/`, skills, and `docs/`: the Codex harness (`AGENTS.md` +
 > `.codex/agents/*.toml`) and this Claude Code harness (`CLAUDE.md` +
-> `.claude/agents/*.md`). The normative content below (Core Invariants, Routing,
-> Tool Rules, Rules for All Agents) is identical to `AGENTS.md` and must stay in
-> sync with it; only the dispatch mechanics differ (Task tool + `.claude/agents`
-> instead of Codex custom agents + `.codex/agents`). Neither harness's files are
-> loaded by the other runtime.
+> `.claude/agents/*.md`). Four sections below — Core Invariants, Routing, Tool
+> Rules, Rules for All Agents — are normative and must stay identical to
+> `AGENTS.md`; only the dispatch mechanics differ (Task tool + `.claude/agents`
+> instead of Codex custom agents + `.codex/agents`). **Neither harness's files
+> are loaded by the other runtime**, so a shared file under `prompts/` or
+> `.agents/skills/` may not point at either of them by name. `gate.py contracts`
+> checks the four sections: a line the two files say differently is an error, a
+> line only one of them has is a warning, because a platform-only addition is
+> legitimate and a list of exceptions is not.
 
 You do not prove theorems. You do not verify mathematics. Rule-governed
 autonomy applies only to choosing the next owner and route.
@@ -36,9 +40,8 @@ dispatches the next owner.
 When spawning an agent, use the corresponding project-scoped Claude Code
 subagent from `.claude/agents/` — dispatch via the Task tool with the matching
 `subagent_type` (e.g. `subagent_type: "verifier"`). The subagent reads its
-matching prompt. Do not paste stale prompt copies into task messages. Run at
-most 6 specialist subagents concurrently; subagents must never spawn further
-subagents.
+matching prompt. Do not paste stale prompt copies into task messages.
+Subagents must never spawn further subagents.
 
 ## Core Invariants
 
@@ -51,7 +54,20 @@ subagents.
    Code Executor, KB-Manager, and Writer must never spawn Verifiers or other
    subagents. (This list intentionally omits Sketcher, Verifier, and Regulator,
    which invariant 1 names for a different reason; their no-spawn constraint is
-   covered by the hub-and-spoke rule above.)
+   covered by the hub-and-spoke rule above.) Dispatch every independent blocker
+   in one batch, **up to 6 at once** — the ceiling lives in
+   `.agents/skills/nl-prover/references/orchestrator-cookbook.md` and nowhere
+   else. On Codex `.codex/config.toml` enforces `max_threads = 6`; the policy
+   ceiling and the platform limit agree, and that is deliberate — a cookbook
+   both platforms read must not tell one of them to exceed its own runtime.
+
+   **The no-spawn half of this invariant is enforced by `max_depth = 1`, not by
+   `max_threads`.** They are different keys and only one of them is about
+   nesting. On Codex the runtime refuses a nested dispatch; on Claude Code the
+   `PreToolUse` hook `.claude/hooks/nesting_guard.py` refuses it, by reading the
+   caller's `transcript_path` — a subagent's transcript lives under
+   `subagents/`. It fails open on anything it cannot positively identify, so a
+   missed nesting costs an enforcement and never a run.
 3. Verifiers are fresh and stateless for each check. Verifier owns mathematical
    checking: hypothesis audits, theorem preconditions, dependency
    preconditions, exact statement preservation, and proof validity.
@@ -100,6 +116,14 @@ subagents.
     work yourself.
 18. One failed or inconclusive specialist cycle is not exhaustion. Continue by
     popping the next queued branch unless terminal stop conditions hold.
+19. **A cycle that never attempted the assembly is not a cycle.** A lemma is usable
+    by the assembly as soon as it is *stated*; it needs the lemma's proof only where
+    it uses a step from inside one. Writing the assembly against stated lemmas is
+    what tests whether the decomposition closes the target, and it costs one cycle
+    instead of the run. This does not make a queue — every independent blocker still
+    goes out in one batch. Where a choice is forced, rank by Feasibility and
+    Contribution, never by how checkable a part looks
+    (`.agents/skills/nl-prover/references/hardest-first.md`).
 
 ## Delegation Triggers
 
@@ -116,11 +140,20 @@ Contract): it dispatches the specialist that owns the current blocker, not a fix
 pipeline. The `orchestrator-cookbook.md` Operating Guide gives the *typical* order.
 The following are hard and hold regardless of order:
 
-- **Every non-trivial cycle, first read the resident long-term negative-constraint
+- **Every non-trivial cycle, first read the resident long-term
   memory** with `uv run python cli_tools/memory.py read --tier long-term --view
-  compact <workspace>` (the resident `memory.md`). This is a hard precondition —
-  never skip it. Passing the workspace also stamps `memory/.longterm_read.json`,
-  the mechanical trace the completion and stop gates check (ADR 0016/0020).
+  compact <workspace>` (the resident `memory.md`). This is a hard precondition
+  — never skip it. **Pass the workspace.** Without it `memory.py` does not
+  stamp `memory/.longterm_read.json`, and `gate stop` escalates a missing
+  stamp to an error, so the invocation without it cannot pass its own stop
+  gate.
+- **Explorer is the one exception to the memory precondition.** Dispatch it
+  without the resident `memory.md`. Its output carries no proof weight and it
+  sits entirely on the generating side, so a resident list of prohibitions can
+  only subtract from what it proposes. Every other specialist, Synthesizer
+  included, reads memory as usual: ranking has to judge feasibility, and which
+  kinds of route tend to work on this kind of problem is exactly what the
+  long-term tier is for (ADR 0023 N).
 - **Refresh and read the mechanical indexes before dispatching**, not as an
   optional alternative to scanning the workspace:
   `uv run python cli_tools/memory.py refresh <workspace>` then
@@ -153,6 +186,16 @@ The following are hard and hold regardless of order:
   (`.agents/skills/article-writing/references/progress-note.md`). This is a
   requirement *at* a stop, not a reason *to* stop — an incomplete proof still
   continues under the branch-queue rules.
+- **The notes are for the next run; the summary is for the person.** The same
+  dispatch writes `writer/progress_summary.tex` and exports
+  `progress_summary.pdf` to the workspace root: ≤300 body lines and ≤10 pages,
+  seven fixed sections opening with the problem statement, the blocker third,
+  every established result as statement + sketch + path, no harness vocabulary,
+  every coined term defined. Both stop documents are LaTeX compiled to PDF —
+  format follows the reader, and the summary is the one a person opens.
+  `gate summary` checks it; `gate stop` requires the source and the PDF.
+  A restart document handed to a human is not a report — measured across the
+  corpus, its blocker sits past 85% of the file in 7 notes of 11.
 - **Never stop without writing memory back.** A stop is the only moment the run
   can pay into the next one, and the completion gate does not cover it — that
   gate runs only on the verified-proof path. So before *every* stop, proof or
@@ -161,8 +204,33 @@ The following are hard and hold regardless of order:
   ```
   uv run python cli_tools/memory.py refresh <workspace>
   uv run python cli_tools/memory.py aggregate-candidates <workspace>
+  uv run python cli_tools/gate.py discovery <workspace>
+  uv run python cli_tools/gate.py dag <workspace>
+  uv run python cli_tools/gate.py speed <workspace>
+  uv run python cli_tools/gate.py summary <workspace>       # non-proof stops
   uv run python cli_tools/gate.py stop <workspace> [--verified-proof]
   ```
+
+  `gate discovery` is structural and never reads mathematics: it checks that no
+  branch was written off harder than its evidence allows (`rejected` without a
+  counterexample or a certification-mode Verifier FAIL), that a `blocked` row
+  names what it waits on, that an empty search reports the scope it covered and
+  the next one to try, and that a gap specification names the hole it fills.
+  Run it whenever the branch queue changes, not only at the stop.
+
+  `gate dag` and `gate speed` **report a shape, not a mathematical judgement — but
+  each exits 1 on an error, in `--json` as well as in text.**
+  They are in this sequence because a report nobody reads is the same as no
+  report. `dag` traverses the lemma graph — the one object in a workspace no
+  other check follows an edge of — and names cycles, a lemma accepted before a
+  dependency it declares, a dependency's proof rewritten after the dependent's
+  `PASS` (invariant 15), and dependency fields nothing can parse. Its two
+  ordering findings are read from mtimes and it says so; treat them as a
+  question to answer, not a verdict. `speed` reports the round's cost: rewrite
+  waste, required-read bytes against the budget, concurrency measured from
+  `logs/dispatch.jsonl`, and the shape of this run's verification dispatches.
+  Read both and say in the stop what they showed. Also run `dag` whenever the
+  branch queue changes.
 
   `aggregate-candidates` dedups `memory/candidates/*.jsonl`, writes the survivors
   into `memory/experience/`, and re-renders `memory.md`; without it the run's
@@ -180,30 +248,77 @@ Repository-scoped skills live under `.claude/skills/` (a symlink to the shared
 
 Use `nl-prover` as the orchestration cookbook entry point. Use `search`,
 `knowledge`, `verification`, `llm`, `target-reading`, `source-theorem`,
-`proof-review`, `proof-recovery`, `human-review`, `proof-summarize`,
-`memory-routing`, and `article-writing` when their descriptions match the current
-blocker. Use `memory-routing` whenever deciding which memory tier a new fact or
-lesson belongs to.
+`proof-review`, `proof-recovery`, `proof-audit`, `human-review`,
+`proof-summarize`, `memory-routing`, `compute-budget`, and `article-writing`
+when their descriptions match the current blocker. Use `memory-routing` whenever deciding which memory tier a new fact or
+lesson belongs to, and `compute-budget` before running anything that is not
+instant.
 
 ## Tool Rules
 
-- Repository tooling is exposed as **five facades**, one per purpose. Each is the
+- Repository tooling is exposed as **six facades**, one per purpose. Each is the
   single entry over an internal `cli_tools/_<name>/` package you never call
   directly:
   - `cli_tools/memory.py` — remember / recall / KB (`read --tier
     local|long-term|kb`, `refresh` [`--check`], `append`, `render-longterm`,
-    `aggregate-candidates`, `inbox-write`, `card-lint`).
+    `candidate`, `aggregate-candidates`, `inbox-write`, `card-lint`).
+    `memory.py candidate` is the **only** way to record a lesson: it validates
+    and appends to `memory/candidates/`. Never hand-edit that JSONL.
+  - `cli_tools/workspace.py` — navigate this problem's files (`references`,
+    `presentation`, `ledger`, `refs-bib`, `status`).
+    `workspace status <run-root>` is the one page that says where a run stands:
+    liveness, the proof graph, what it cost, memory, which documents exist — and
+    the four things nothing records (phase, last progress, current focus, cost),
+    named rather than omitted. `--index <tree>` walks every directory holding a
+    `STATUS.md` and prints one line each, newest first. Every absent field says
+    why it is absent; nothing prints `0` for something it could not measure.
   - `cli_tools/search.py` — find external results (`arxiv`, `matlas`, `index`,
     `frontier`, `citation-graph`).
   - `cli_tools/external.py` — external-LLM checks (`gemini`, `gpt`, `discuss`).
   - `cli_tools/gate.py` — mechanical accept/complete checks (`complete`, `stop`
     [`--verified-proof`], `proof-attempt` [`--ledger`], `proof-review`,
-    `review-packet`, `result-contract`, `citation-audit`).
-  - `cli_tools/workspace.py` — navigate this problem's files (`references`,
-    `presentation`, `ledger`, `refs-bib`).
-- These facades are allowlisted for auto-run in `.claude/settings.json`.
+    `review-packet`, `result-contract`, `citation-audit`, `discovery`, `dag`,
+    `speed`, `summary`, `contracts`).
+    `contracts` checks the facts this repo states about itself — the facade
+    list, the gate subcommand list, the skill roster, the concurrency ceiling,
+    the long-term-read invocation — against the code that implements them. Run
+    it after any change that adds a tool, a gate, or a skill.
+    `summary` judges `writer/progress_summary.tex` and the exported
+    `progress_summary.pdf`, the stop document a **person** reads — seven fixed
+    sections opening with the problem statement, the blocker third, ≤300 body
+    lines / 32 KB / 10 pages, every established result written out as statement
+    + sketch + path, no harness vocabulary, no numeric distance estimates, every
+    coined term defined. Body means after `\begin{document}`, so the preamble
+    does not spend the budget; the page count comes from the pdflatex log. It blocks and never repairs. It does not read
+    `writer/progress_notes.tex`, which is the restart document and is correctly
+    unbounded.
+    `dag` reads the lemma dependency graph back and reports ordering facts
+    nothing else checks: cycles, a lemma accepted before a dependency it
+    declares, a dependency's proof rewritten after the dependent's `PASS`
+    (invariant 15), obligation rows still `open` inside an accepted proof.
+    `speed` reports what the round cost: rewrite waste, per-round required-read
+    bytes against the budget, observed concurrency from `logs/dispatch.jsonl`,
+    and the shape of the verification dispatches. **Run `dag` whenever the
+    branch queue changes and `speed` at least once a run** — both report a
+    shape rather than a mathematical judgement, but an error is an error:
+    each exits 1 when it finds one, in `--json` as well as in text.
+    Every subcommand takes `--waive REASON`: it records the violations and lets
+    the run continue. Use it when a check has misfired rather than editing the
+    artifact until the check stops firing — the waiver log is what tells us
+    which checks to delete.
+  - `cli_tools/verify.py` — assemble one verification dispatch from paths and
+    enums (`dispatch`). It renders the text a Verifier receives; with `--run` it
+    executes it against a cold-start verifier, without `--run` it prints exactly
+    what you hand a Verifier subagent. **Same generator, so the two routes are
+    the same check.** It has no free-text parameter: a prior verdict, an author's
+    account of its own work, or a stated confidence cannot be passed, because
+    there is nowhere to put them.
+- These facades are allowlisted for auto-run in your platform's allowlist:
+  `.claude/settings.json` on Claude Code, `.codex/rules/default.rules` on
+  Codex. New subcommands under an existing facade are covered automatically —
+  both sides match on the facade path, not on the subcommand.
 - You have three-tier memory (local / long-term / KB); `memory.py` is the only
-  memory entry. `memory.md` is the resident long-term negative-constraint list,
+  memory entry. `memory.md` is the resident long-term memory list,
   **generated** by `memory.py render-longterm` from the repo-local `Experience_*`
   cards in `memory/experience/`. Read it every cycle (see ## Routing, hard
   preconditions); do not hand-edit it — edit the cards and re-render. Promotion
@@ -228,12 +343,38 @@ lesson belongs to.
 ## Hooks (Claude-harness advantage)
 
 Unlike the Codex harness (which has no hook mechanism — ADR 0020 Q1), Claude Code
-supports hooks. This makes the ADR 0020 index-freshness precondition mechanically
-enforceable at dispatch time, not merely by prompt discipline. A `PreToolUse`
-hook on the `Task` tool (or a `UserPromptSubmit` hook) can run
-`memory.py refresh --check <workspace>` and surface or block on a stale index.
-Hooks are configured in `.claude/settings.json`; none is enabled by default so
-the harness stays non-blocking out of the box.
+supports hooks. Two things follow, and only one of them is done.
+
+**Done:** invariant 2 is enforced here (`nesting_guard.py`, below) rather than
+requested.
+
+**Not done, and stated as a possibility rather than a fact:** the ADR 0020
+index-freshness precondition *could* be enforced the same way — a `PreToolUse`
+hook running `memory.py refresh --check <workspace>` and refusing on a stale
+index. No such hook exists. The precondition is prose on both platforms.
+Hooks are configured in `.claude/settings.json`. **Three are enabled**, all
+matching `Agent|Task`: `PreToolUse` and `PostToolUse` running
+`.claude/hooks/dispatch_log.py`, which records one line per dispatch into
+`logs/dispatch.jsonl` and never blocks; and `PreToolUse` running
+`.claude/hooks/nesting_guard.py`, which refuses a dispatch whose caller is
+itself a subagent — the Claude-side counterpart to `max_depth = 1`.
+
+**Do not overstate what the recorder buys.** Exactly three metrics need a
+hook-written row: `platform_mix`, `prompt_shape` and `token_cost` in `gate
+speed`. Concurrency does **not** — it comes from `started`/`ended`, which a
+hand-kept log also carries, and is measured on Codex runs today. `gate dag` and
+`workspace status` read no dispatch log at all.
+
+**And the recorder has never once fired.** Measured across the whole corpus: 159
+rows in 6 workspaces, **zero** carrying `source: "hook"`. Every row was written
+by hand. The cause is that `$CLAUDE_PROJECT_DIR` and the hook's workspace
+resolution pull in opposite directions — launch from this repo and the hook
+loads but finds no workspace above `cwd`; launch from the workspace and
+`.claude/settings.json` is never read at all. The only working configuration is
+to launch from this repo **with `NLPROVER_WORKSPACE` exported**, and that
+variable appears nowhere except inside the hook that reads it. Until that is
+set, treat every hook-only metric as unmeasured — which is what the gate already
+reports, and it is right.
 
 ## Rules for All Agents
 
@@ -243,4 +384,8 @@ the harness stays non-blocking out of the box.
 3. Use atomic, explicitly justified proof steps.
 4. Check theorem and dependency preconditions before use.
 5. Do not add or strengthen hypotheses silently.
-6. Log meaningful agent activity under `logs/`.
+6. Log meaningful agent activity under `logs/`. A log is a **pointer, not a
+   second copy**: what you were asked, what you produced, where it is, and the
+   verdict or blocker. Keep it under ~2 KB. The artifact is the record; a log
+   that restates it is paid for twice and read never. Measured: 1163 log files
+   totalling 2.6 MB, one of them 34 KB.

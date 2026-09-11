@@ -8,11 +8,19 @@
     gate review-packet   <packet_file> [--json]
     gate result-contract <workspace> [--json]
     gate citation-audit  <workspace> --tex F [--json]   (final-article citation lint, ADR 0019)
+    gate discovery       <workspace> [--json]   (discovery-region schema lint, ADR 0023)
+    gate speed           <workspace> [--json] [--strict]   (run cost telemetry, ADR 0024)
+    gate dag             <workspace> [--json] [--strict]   (lemma dependency graph, advisory)
 
 These are structural, non-mathematical checks.
+
+Every subcommand takes --waive REASON: it records the violations and continues
+instead of blocking, and `gate stop` summarises what was waived. Each also
+prints, on --help and on failure alike, what it checks, what the legal values
+are, and the smallest fix.
 """
 import sys
-from _gate import completion, proof_attempt, proof_review, review_packet, result_contract, citation_audit, stop
+from _gate import completion, proof_attempt, proof_review, review_packet, result_contract, citation_audit, stop, discovery, speed, dag, summary, contracts
 
 DISPATCH = {
     "complete": completion.main,
@@ -22,8 +30,18 @@ DISPATCH = {
     "review-packet": review_packet.main,
     "result-contract": result_contract.main,
     "citation-audit": citation_audit.main,
+    "discovery": discovery.main,
+    "speed": speed.main,
+    "dag": dag.main,
+    "summary": summary.main,
+    "contracts": contracts.main,
 }
-USAGE = "usage: gate {complete|stop|proof-attempt|proof-review|review-packet|result-contract|citation-audit} [args...]"
+USAGE = (
+    "usage: gate {complete|stop|proof-attempt|proof-review|review-packet|"
+    "result-contract|citation-audit|discovery|speed|dag|summary|contracts} [args...]\n"
+    "       gate <subcommand> --help   for what it checks, the legal values, and the fix\n"
+    "       every subcommand takes --waive REASON to record and continue"
+)
 
 
 def main() -> None:

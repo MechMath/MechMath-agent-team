@@ -4,6 +4,12 @@ This file is the Orchestrator's operational index and core routing contract.
 Detailed templates live in `prompts/references/` and skill cookbooks live under
 `.agents/skills/`.
 
+This file is shared: the Codex runtime loads `AGENTS.md`, the Claude Code runtime
+loads `CLAUDE.md`, and neither loads the other's. So a pointer from here to one of
+those two names is a dead reference for half its readers — send them to a shared
+file, or, when the content genuinely lives only in the platform pair and is the
+same in both, name it as *your platform file* and give both names.
+
 ## Reference Map
 
 | Need | File |
@@ -43,16 +49,37 @@ blocker, and acceptance condition; the Orchestrator dispatches the next agent.
 ## Each-Cycle Preconditions
 
 Before dispatching on any non-trivial cycle, satisfy the hard preconditions
-defined in `AGENTS.md ## Routing` and detailed in the `orchestrator-cookbook.md`
-Operating Guide (step 1): read the resident long-term negative-constraint memory
+defined in your platform file's `## Routing` (`AGENTS.md` on Codex, `CLAUDE.md`
+on Claude Code) and detailed in the `orchestrator-cookbook.md`
+Operating Guide (step 1): read the resident long-term memory
 (a hard precondition, never skipped) and refresh + read the mechanical indexes
 rather than re-scanning the whole workspace — the indexes are compressed views
 that cost far fewer tokens than a full scan. This is required, not optional.
 
+## Every Dispatch Names `mode` And `resume`
+
+Both are yours to decide, and both must appear in the dispatch text itself.
+
+- **`mode`** — `discovery` or `certification`. It decides what counts as a
+  conclusion, what counts as a failure, what the specialist ranks by, and
+  whether its output can carry proof weight
+  (`prompts/references/discovery-mode.md`, `certification-mode.md`). All
+  thirteen specialists can be sent to either.
+- **`resume`** — fresh instance or the same one again. A certification-mode
+  Verifier is always fresh, and so is an Auditor doing an independent audit.
+
+Each role file names the mode that applies when the dispatch omits it. That
+fallback exists for a malformed dispatch, not as a way to skip the decision: an
+omitted `mode` silently sends discovery-side work — Explorer, Searcher,
+CE-Hunter, Sketcher, Synthesizer, Code Executor — into the region that treats a
+failed attempt as a verdict, which is the failure this separation exists to
+prevent. Deciding it is one word; leaving it out costs a route.
+
 ## Hard Routing Principles
 
-These follow the numbered hard constraints in `AGENTS.md ## Core Invariants` —
-consult those for the authoritative text. Operationally:
+These follow the numbered hard constraints in your platform file's `## Core
+Invariants` (`AGENTS.md` on Codex, `CLAUDE.md` on Claude Code) — consult those
+for the authoritative text. Operationally:
 
 - Proof candidates get one fresh Verifier review packet, produced only by
   Generator or Refiner, never by the Orchestrator (invariants 1, 12). A final
@@ -62,7 +89,7 @@ consult those for the authoritative text. Operationally:
   Mechanical checks never replace Verifier packets (invariant 16).
 - Verification failure routes to the smallest owner. Do not ask the same proof
   writer to rephrase the same failed route when the packet identifies a plan,
-  source, definition, final assembly, route-strategy, or target-obstruction
+  source, definition, final assembly, the route itself, or a possible obstruction
   blocker.
 - Regulator classifies difficult failures and writes active dispatch plus
   queued alternates. It does not prove, verify, merge, or spawn agents.
@@ -107,8 +134,14 @@ Long runs maintain an active branch queue in `STATUS.md`, `recovery/`, or
 
 Rules:
 
-- When a branch is rejected, blocked, or inconclusive, update its status and pop
-  the next queued branch.
+- When a branch fails, set it to `open` and pop the next queued branch.
+  `blocked` requires naming the external condition being waited on.
+  `rejected` requires an exact counterexample or a certification-mode Verifier
+  FAIL — nothing else reaches it, and it has no way back.
+  The six allowed statuses are in `branch-queue-cookbook.md`; a word not on that
+  list does not change a branch's state, whatever an artifact calls it.
+- An `open` branch competes on equal footing with new candidates when ranking.
+  Having appeared in the history is not a mark against it.
 - Do not write `future Sketcher/Human after a new idea` while queued branches
   remain or while a specialist trigger has not been tried.
 - A single Explorer/Synthesizer/Regulator/recovery cycle is not exhaustion.
@@ -117,16 +150,15 @@ Rules:
 - Stop for Human only when target reading, missing input, or external
   permission is genuinely unavailable to the harness.
 
-## Failure Classes
+## Diagnosing A Failure
 
-| Class | Meaning | Typical owner |
-|-------|---------|---------------|
-| `proof-local` | Proof execution failed while statement and plan look usable. | Generator |
-| `plan-dag` | Lemma statement, dependency, final bridge, or assembly route is wrong or incomplete. | Sketcher/Refiner |
-| `context-source` | Source theorem, definition, notation, or convention audit is missing. | Searcher/Auditor/KB-Manager |
-| `route-strategy` | The whole route is poor or repeated failures suggest a different strategy. | Explorer/Sketcher/Synthesizer |
-| `target-obstruction` | A counterexample, boundary failure, or obstruction may exist. | CE-Hunter/Regulator/Verifier |
-| `human-needed` | The accepted reading or target needs human clarification. | Human |
+There is no fixed class vocabulary. Regulator answers two questions in prose —
+what is still missing, and who does it next — and the Orchestrator routes on the
+named owner. See `prompts/regulator.md`.
+
+A negative literature search closes only the question "where does this come
+from". It closes no mathematical route, and an exact structural fact you already
+hold is a thing to **use**, not a thing to find a citation for.
 
 ## Result Contract
 
@@ -178,6 +210,17 @@ export `progress_notes.pdf` **before** stopping. The five required sections
 explorations; possible next paths; literature summary) are specified in
 `.agents/skills/article-writing/references/progress-note.md`.
 
+That file is the restart document, and its reader is the next run. The same
+dispatch also writes `writer/progress_summary.tex` and exports
+`progress_summary.pdf` to the workspace root — the document a **person** reads:
+at most 300 body lines and 10 pages, opening with the problem statement and
+with the blocker in section three, each established result written out as
+statement + sketch + path, no harness vocabulary, every term it coins defined. Both stop documents are
+compiled, and the summary is the one a person opens. `gate summary <workspace>`
+checks it and `gate stop` requires the source and the PDF. Do not merge the two: they are two
+readers who want opposite things, and the contrast is tabulated at the end of
+`progress-note.md`.
+
 The document is only half of what a stop owes. Every stop also **writes memory
 back** — `memory.py refresh`, then `memory.py aggregate-candidates <workspace>`
 to promote the run's candidate lessons into `memory/experience/` and re-render
@@ -190,7 +233,7 @@ transferable lesson are in `stop-conditions.md` (ADR 0022).
 
 ## Tool Index
 
-Run repository Python tools with `uv run python ...`. There are **five tool
+Run repository Python tools with `uv run python ...`. There are **six tool
 facades**, one per purpose; each is the single entry over an internal package
 (`cli_tools/_<name>/`, never called directly):
 
@@ -200,12 +243,24 @@ facades**, one per purpose; each is the single entry over an internal package
 - **`external.py`** — independent external-LLM checks (`gemini`, `gpt`, `discuss`).
 - **`gate.py`** — mechanical accept/complete checks, non-mathematical (`complete`,
   `stop [--verified-proof]`, `proof-attempt [--ledger]`, `proof-review`,
-  `review-packet`, `result-contract`, `citation-audit`).
+  `review-packet`, `result-contract`, `citation-audit`, `discovery`, `dag`,
+  `speed`, `summary`, `contracts`). `dag` reads the lemma dependency graph;
+  `speed` reports the round's cost. Both are advisory and exit 0 — run them
+  anyway, on the cadence in your platform file's `## Tool Rules` (`AGENTS.md` on
+  Codex, `CLAUDE.md` on Claude Code). `summary` judges the
+  stop document a person reads; `contracts` checks what this repo states about
+  itself against the code that implements it.
+- **`verify.py`** — assemble one verification dispatch from paths and enums
+  (`dispatch`). Renders the text a Verifier receives; with `--run` it executes it
+  against a cold-start verifier, without `--run` it prints exactly what you hand a
+  Verifier subagent. Same generator either way, so the two routes are one check.
 - **`workspace.py`** — navigate this problem's files (`references`, `presentation`,
-  `ledger`, `refs-bib`).
+  `ledger`, `refs-bib`, `status`). `status <run-root>` renders where the run
+  stands on one page; `status --index <tree>` lists every run root newest first.
 
-Full subcommand lists and invocation examples live in `AGENTS.md ## Tool Rules`
-(facade summary), `.agents/skills/nl-prover/references/workspace-index-tools.md`
+Full subcommand lists and invocation examples live in your platform file's
+`## Tool Rules` (`AGENTS.md` on Codex, `CLAUDE.md` on Claude Code — the facade
+summary), `.agents/skills/nl-prover/references/workspace-index-tools.md`
 (memory / search / workspace index tools), and
 `prompts/references/verification-gates.md` (gate lints). Do not re-document the
 commands here.

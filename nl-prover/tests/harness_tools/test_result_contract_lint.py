@@ -123,21 +123,24 @@ class ResultContractLintTests(unittest.TestCase):
             result = result_contract_lint.lint_workspace(root)
         self.assertEqual([], result.errors)
 
-    def test_rejects_process_gap_in_result_body(self):
+    def test_warns_on_process_gap_in_result_body(self):
+        """Advisory, not blocking (ADR 0023 P.1). This regex scans free prose,
+        where an honest "we could not prove X" reads the same as a false claim."""
         temp, root = self.make_workspace("The source theorem is missing, so gap found.")
         with temp:
             result = result_contract_lint.lint_workspace(root)
-        self.assertTrue(any("gap/process-gap" in error for error in result.errors))
+        self.assertTrue(any("gap/process-gap" in w for w in result.warnings))
+        self.assertFalse(any("gap/process-gap" in e for e in result.errors))
 
-    def test_rejects_unresolved_case_in_result_body(self):
+    def test_warns_on_unresolved_case_in_result_body(self):
         temp, root = self.make_workspace(
             "The generic case follows. The boundary case remains unresolved."
         )
         with temp:
             result = result_contract_lint.lint_workspace(root)
         self.assertTrue(
-            any("unresolved case claim" in error for error in result.errors),
-            result.errors,
+            any("unresolved case claim" in w for w in result.warnings),
+            result.warnings,
         )
 
     def test_rejects_terminal_false_claim_without_obstruction_packet(self):

@@ -90,7 +90,7 @@ different.
   target.
 - Prefer Searcher for missing theorem packages and Auditor for unclear terminology before using obstruction language.
 - Prefer Regulator classification over repeating a failed branch when the
-  packet mixes proof-local, source, definition, DAG, and route-strategy
+  packet mixes several distinct blockers
   blockers.
 - Select an obstruction branch only when the packet already contains the
   proposed object or contradiction to send through Regulator with proof-review

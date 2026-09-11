@@ -30,6 +30,11 @@ class StopGateTests(unittest.TestCase):
             writer.mkdir()
             (writer / "progress_notes.tex").write_text("notes\n", encoding="utf-8")
             (root / "progress_notes.pdf").write_text("pdf\n", encoding="utf-8")
+            # A stop owes two documents, not one: the restart note above and the
+            # summary a person reads. `gate summary` judges the summary's
+            # contents; this gate only asks that it is there.
+            (writer / "progress_summary.tex").write_text("summary\n", encoding="utf-8")
+            (root / "progress_summary.pdf").write_text("pdf\n", encoding="utf-8")
         return temp, root
 
     def test_clean_workspace_passes(self):
@@ -37,6 +42,26 @@ class StopGateTests(unittest.TestCase):
         with temp:
             result = stop_gate.lint_workspace(root)
         self.assertEqual([], result.errors)
+
+    def test_missing_dispatch_log_warns_but_does_not_block(self):
+        # Without it every later timing has to come from mtimes, which cannot
+        # separate a stalled harness from an operator who stepped away. But a run
+        # that did everything else right must still be able to stop.
+        temp, root = self.make_workspace()
+        with temp:
+            result = stop_gate.lint_workspace(root)
+        self.assertTrue(any("dispatch.jsonl" in w for w in result.warnings))
+        self.assertFalse(any("dispatch.jsonl" in e for e in result.errors))
+        self.assertTrue(result.ok)
+
+    def test_run_times_is_no_longer_asked_for(self):
+        """It was asked for and never delivered -- 0 of 5 workspaces, no template
+        anywhere, and the dispatch log now records strictly more."""
+        temp, root = self.make_workspace()
+        with temp:
+            result = stop_gate.lint_workspace(root)
+        self.assertFalse(any("RUN_TIMES" in w for w in result.warnings))
+        self.assertFalse(any("RUN_TIMES" in e for e in result.errors))
 
     def test_missing_local_index_blocks_stop(self):
         # A run that never sedimented its routes and dead ends has nothing to
@@ -113,6 +138,48 @@ class StopGateTests(unittest.TestCase):
             result = stop_gate.lint_workspace(root)
         self.assertTrue(any("progress_notes.pdf" in e for e in result.errors))
 
+    def test_a_stop_without_the_human_facing_summary_is_refused(self):
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "writer" / "progress_summary.tex").unlink()
+            result = stop_gate.lint_workspace(root)
+        self.assertTrue(any("progress_summary.tex" in e for e in result.errors))
+        self.assertTrue(any("two readers" in e for e in result.errors))
+
+    def test_an_uncompiled_summary_is_refused(self):
+        """The summary a person opens is the PDF. A `.tex` nobody compiled
+        leaves the reader with nothing and looks exactly like a run that wrote
+        nothing -- which is the whole failure this pair of documents exists to
+        end."""
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "progress_summary.pdf").unlink()
+            result = stop_gate.lint_workspace(root)
+        self.assertTrue(any("progress_summary.pdf" in e for e in result.errors))
+
+    def test_pasted_verbatim_blocks_in_the_notes_are_counted(self):
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "writer" / "progress_notes.tex").write_text(
+                "\\documentclass{article}\n\\begin{document}\n"
+                "\\begin{verbatim}\n## Setup\n**Statement.** X\n\\end{verbatim}\n"
+                "\\end{document}\n",
+                encoding="utf-8",
+            )
+            result = stop_gate.lint_workspace(root)
+        self.assertEqual([], result.errors)
+        self.assertTrue(any("pasted rather than written" in w for w in result.warnings))
+
+    def test_a_long_note_with_no_paste_is_not_warned_about(self):
+        """ADR 0021 bought that length. This must not become a cap by the back door."""
+        temp, root = self.make_workspace()
+        with temp:
+            (root / "writer" / "progress_notes.tex").write_text(
+                "\\section{Lemma}\nProof text.\n" * 3000, encoding="utf-8"
+            )
+            result = stop_gate.lint_workspace(root)
+        self.assertFalse(any("pasted" in w for w in result.warnings))
+
     def test_verified_proof_stop_requires_proof_pdf(self):
         temp, root = self.make_workspace(verified_proof=True)
         with temp:
@@ -133,6 +200,44 @@ class StopGateTests(unittest.TestCase):
             completion_gate.validate_longterm_read(result, root)
         self.assertEqual([], result.errors)
         self.assertTrue(any("long-term-memory read trace" in w for w in result.warnings))
+
+
+class JsonOutputTests(unittest.TestCase):
+    """`--json` must emit JSON, most of all when it has something to report."""
+
+    def run_gate(self, root, *, extra=()):
+        import contextlib
+        import io
+        import json as jsonlib
+
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            stop_gate.main([str(root), "--json", *extra])
+        return buffer.getvalue(), jsonlib
+
+    def test_json_parses_when_the_gate_fails(self):
+        temp = tempfile.TemporaryDirectory()
+        with temp:
+            root = Path(temp.name)
+            (root / "STATUS.md").write_text("# s\n\n## Phase\nprove\n", encoding="utf-8")
+            out, jsonlib = self.run_gate(root)
+            payload = jsonlib.loads(out)  # the assertion is that this does not raise
+        self.assertFalse(payload["ok"])
+        self.assertTrue(payload["errors"])
+
+    def test_prose_epilogue_survives_without_json(self):
+        import contextlib
+        import io
+
+        temp = tempfile.TemporaryDirectory()
+        with temp:
+            root = Path(temp.name)
+            (root / "STATUS.md").write_text("# s\n\n## Phase\nprove\n", encoding="utf-8")
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                stop_gate.main([str(root)])
+            text = buffer.getvalue()
+        self.assertIn(stop_gate.REQUIREMENT.strip().splitlines()[0], text)
 
 
 if __name__ == "__main__":

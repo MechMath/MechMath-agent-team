@@ -1,6 +1,6 @@
 ---
 name: nl-prover
-description: "NL-Prover orchestration cookbook for multi-agent informal proof runs. Use when the Orchestrator manages a proof workspace, chooses specialist subagents, diagnoses stalled routes, maintains branch queues, enforces Orchestrator delegation, or avoids fixed proof pipelines. Trigger on no generator-ready DAG, verifier failure, source theorem blocker, definition ambiguity, route-strategy failure, counterexample risk, branch pruning, recovery packet, route history, repeated blocker, early-stop risk, proof workspace handoff, article/progress writing handoff, or artifact ownership conflict."
+description: "NL-Prover orchestration cookbook for multi-agent informal proof runs. Use when the Orchestrator manages a proof workspace, chooses specialist subagents, diagnoses stalled routes, maintains branch queues, enforces Orchestrator delegation, or avoids fixed proof pipelines. Trigger on no generator-ready DAG, verifier failure, source theorem blocker, definition ambiguity, a route that is not working, counterexample risk, branch pruning, recovery packet, route history, repeated blocker, early-stop risk, proof workspace handoff, article/progress writing handoff, or artifact ownership conflict."
 ---
 
 # NL-Prover Orchestration Cookbook
@@ -16,6 +16,7 @@ route remains restartable.
 |------|-----------------|
 | General orchestration loop | [orchestrator-cookbook.md](references/orchestrator-cookbook.md) |
 | Choose the next specialist | [subagent-dispatch-cookbook.md](references/subagent-dispatch-cookbook.md) |
+| Order a decomposition, or choose when the frontier exceeds the batch cap | [hardest-first.md](references/hardest-first.md) |
 | Route is stuck, pruned, or inconclusive | [branch-queue-cookbook.md](references/branch-queue-cookbook.md) |
 | Refresh and read the mechanical indexes (required every non-trivial cycle) | [workspace-index-tools.md](references/workspace-index-tools.md) |
 | Decide whether stopping is allowed | [stop-conditions.md](references/stop-conditions.md) |
@@ -42,11 +43,14 @@ reads local knowledge.
 | [llm](../llm/SKILL.md) | LLM tools: discussion-partner |
 | [target-reading](../target-reading/SKILL.md) | Target contract, accepted readings, and definition/notation routing |
 | [source-theorem](../source-theorem/SKILL.md) | Source theorem packages, precondition audits, and bridge obligations |
+| [proof-audit](../proof-audit/SKILL.md) | Stage-by-stage audit checklist for one proof route, with the map of which stages the gates already enforce |
 | [proof-review](../proof-review/SKILL.md) | Two-sided proof/refutation routing before terminal non-proof results |
 | [proof-recovery](../proof-recovery/SKILL.md) | Restartable branch recovery and Regulator-aware owner selection |
 | [human-review](../human-review/SKILL.md) | Human-marked proof repair with fresh verification |
 | [proof-summarize](../proof-summarize/SKILL.md) | Final proof summary and reusable knowledge notes |
-| [article-writing](../article-writing/SKILL.md) | Writer cookbook for article candidates, local rewrites, and progress notes |
+| [article-writing](../article-writing/SKILL.md) | Writer cookbook for article candidates, local rewrites, the restart note and the progress summary |
+| [memory-routing](../memory-routing/SKILL.md) | Which memory tier a new fact or lesson belongs to, and how it gets written |
+| [compute-budget](../compute-budget/SKILL.md) | What to check before running anything that is not instant |
 
 ## Environment variables
 - `OPENROUTER_API_KEY` — preferred for gemini-verify, gpt-verify, discussion-partner

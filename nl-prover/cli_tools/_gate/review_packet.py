@@ -15,6 +15,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from _gate import waiver
+
 
 REQUIRED_SECTIONS = [
     "Inputs Checked",
@@ -118,6 +120,12 @@ class LintResult:
         return not self.errors
 
 
+REQUIREMENT = waiver.requirement_text(
+    checks='that a review packet is restartable: verdict, blockers, audit status, external\nverification status, proof-obligation status, and next action.',
+    legal='required sections and snapshot keys must be present; PASS packets additionally\nneed the audit keys',
+    fix='Add the missing section or key. These are structural checks and stay\nblocking: absence is unambiguous.',
+)
+
 def canonical(name: str) -> str:
     return re.sub(r"\s+", " ", name.strip()).casefold()
 
@@ -217,6 +225,36 @@ def check_ledger(
         if mode in {"lemma", "global", "obstruction"} and "assigned" in tokens:
             result.errors.append(
                 f"{label} row {index} is assigned, but {mode} PASS requires resolved work"
+            )
+
+
+def validate_inapplicable_sections(result: LintResult, sections: dict[str, str]) -> None:
+    """A section that does not apply answers in one line (ADR 0024 D1).
+
+    The field stays — dropping it would mean the check was never considered — but
+    an `Applies: NO` followed by eight `N/A` sub-fields is ceremony, not review.
+    A measured report spent 143 of its 239 lines on schema this way.
+
+    Warning, never an error: verbosity has never made a proof wrong, and a lint
+    that blocks a correct packet over prose length would cost more than it saves.
+    """
+    for name, body in sections.items():
+        lines = [line.strip() for line in body.splitlines() if line.strip()]
+        applies_no = any(
+            line.casefold().startswith("applies:") and "no" in line.casefold().split(":", 1)[1]
+            for line in lines
+        )
+        if not applies_no:
+            continue
+        na_fields = sum(
+            1
+            for line in lines
+            if line.startswith("-") and line.split(":")[-1].strip().upper() in {"N/A", "NA", "NONE"}
+        )
+        if na_fields >= 3:
+            result.warnings.append(
+                f"{name}: `Applies: NO` followed by {na_fields} placeholder fields. "
+                f"One line saying why it does not apply is enough; keep the section, drop the padding."
             )
 
 
@@ -405,6 +443,7 @@ def lint_text(text: str, mode: str = "auto") -> LintResult:
             sections,
             pass_verdict=pass_verdict,
         )
+        validate_inapplicable_sections(result, sections)
         validate_target_obstruction_audit(
             result,
             sections,
@@ -467,7 +506,9 @@ def lint_file(path: Path, mode: str = "auto") -> LintResult:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Lint an NL-Prover review packet for restartable shape."
+        description="Lint an NL-Prover review packet for restartable shape.",
+        epilog=REQUIREMENT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("packet", type=Path, help="Path to review_packet*.md")
     parser.add_argument(
@@ -481,6 +522,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print machine-readable lint output.",
     )
+    waiver.add_waiver_arg(parser)
     return parser
 
 
@@ -488,6 +530,14 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     result = lint_file(args.packet, mode=args.mode)
 
+    # Waive before reporting. Reporting first published a verdict computed
+    # before the waiver was applied, so `--json` listed errors the waiver
+    # had already excused and carried an `ok` that disagreed with the
+    # human output on the same run. The two views are one computation.
+    result.errors, _waived = waiver.apply_waiver(
+        result.errors, args.waive, gate="review-packet",
+        workspace=None,
+    )
     if args.json:
         print(
             json.dumps(
@@ -510,6 +560,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: {error}")
         for warning in result.warnings:
             print(f"WARNING: {warning}")
+    if not args.json:
+        waiver.print_waived(_waived, args.waive or "")
+    if result.errors and not args.json:
+        # Prose after a JSON document makes the document unparseable exactly
+        # when it carries something to report. Six of the ten gates did this;
+        # only the ones that happened to pass on the workspace they were tried
+        # against looked healthy.
+        print()
+        print(REQUIREMENT)
     return 0 if result.ok else 1
 
 

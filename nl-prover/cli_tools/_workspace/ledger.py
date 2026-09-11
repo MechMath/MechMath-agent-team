@@ -207,8 +207,11 @@ def main(argv=None):
     p_trust.add_argument("workspace")
     p_trust.add_argument("--claim-id", required=True)
     p_trust.add_argument("--trust", required=True, choices=list(TRUST_LEVELS))
-    p_trust.add_argument("--audit-status", default="")
-    p_trust.add_argument("--independent-warrant", default="")
+    # `--trust` and `--source-quality` carried their vocabulary here; these two did not,
+    # so a typo reached `set_trust` to be rejected there and `--help` never listed the
+    # legal values at all. Same closed tuples, same place as the other two.
+    p_trust.add_argument("--audit-status", default="", choices=list(AUDIT_STATUS))
+    p_trust.add_argument("--independent-warrant", default="", choices=list(WARRANT))
 
     p_list = sub.add_parser("list", help="print all rows")
     p_list.add_argument("workspace")

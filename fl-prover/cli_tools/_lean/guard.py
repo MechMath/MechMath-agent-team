@@ -7,6 +7,7 @@ import argparse
 import difflib
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +85,12 @@ def cmd_check(args: argparse.Namespace) -> None:
         print("statement_guard: FAIL")
         print(f"current={current_hash}")
         print(f"snapshot={snapshot_hash}")
+        # Until 2026-09-09 this printed FAIL and returned None, so `lean guard check`
+        # reported a violated statement guard and exited 0. Anything reading `$?` — a
+        # hook, a wave script, an orchestrator's `&&` chain — saw a pass. This is the
+        # gate that protects a frozen statement from being edited in place, and editing
+        # a statement in place is how a false lemma reached its siblings 14 times in the
+        # 2026-09 run. A gate that cannot fail the caller is not a gate.
         raise SystemExit(1)
     print("statement_guard: PASS")
 
@@ -101,7 +108,42 @@ def cmd_diff(args: argparse.Namespace) -> None:
 
 
 def cmd_approve_change(args: argparse.Namespace) -> None:
+    """Re-snapshot a protected statement AND record that a change was approved.
+
+    Unlike ``snapshot``, this refuses to run without ``--review`` and writes an
+    ``approved_change`` record (review artifact, actor, timestamp, previous and
+    new normalized hashes, previous snapshot path) so the guard trail shows that
+    the protected text moved and under which licence (Regulator F1, S9 W313).
+    """
+    if not getattr(args, "review", None):
+        raise SystemExit("approve-change: --review <report path or id> is required")
+    actor = task_ledger.require_actor(args.actor)
+    data, task = load_task(args.workspace, args.task)
+    protected = task.get("protected_statement", {}) or {}
+    prev = {
+        "version": protected.get("version"),
+        "hash": protected.get("hash"),
+        "snapshot_path": protected.get("snapshot_path"),
+    }
     cmd_snapshot(args)
+    data, task = load_task(args.workspace, args.task)
+    protected = task.setdefault("protected_statement", {})
+    record = {
+        "review": args.review,
+        "actor": actor,
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "prev_version": prev["version"],
+        "prev_hash": prev["hash"],
+        "prev_snapshot_path": prev["snapshot_path"],
+        "new_version": protected.get("version"),
+        "new_hash": protected.get("hash"),
+        "changed": prev["hash"] != protected.get("hash"),
+    }
+    protected["approved_change"] = record
+    history = protected.setdefault("approved_changes", [])
+    history.append(record)
+    task_ledger.save_ledger(args.workspace, data, actor)
+    print(f"approved_change recorded: changed={record['changed']} prev={prev['hash']} new={protected.get('hash')} review={args.review}")
 
 
 def build_parser() -> argparse.ArgumentParser:

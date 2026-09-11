@@ -20,10 +20,11 @@ prefix_rule(pattern=["sed", "-n"], decision="allow")
 prefix_rule(pattern=["tail"], decision="allow")
 prefix_rule(pattern=["test", "-d"], decision="allow")
 prefix_rule(pattern=["test", "-f"], decision="allow")
-# The five model-facing tool facades (each groups its internal package).
+# The model-facing tool facades (each groups its internal package).
 prefix_rule(pattern=["uv", "run", "python", "cli_tools/memory.py"], decision="allow")
 prefix_rule(pattern=["uv", "run", "python", "cli_tools/search.py"], decision="allow")
 prefix_rule(pattern=["uv", "run", "python", "cli_tools/external.py"], decision="allow")
 prefix_rule(pattern=["uv", "run", "python", "cli_tools/gate.py"], decision="allow")
+prefix_rule(pattern=["uv", "run", "python", "cli_tools/verify.py"], decision="allow")
 prefix_rule(pattern=["uv", "run", "python", "cli_tools/workspace.py"], decision="allow")
 prefix_rule(pattern=["wc"], decision="allow")

@@ -49,8 +49,12 @@ selected owner.
    `.agents/skills/proof-review/SKILL.md` to compare the best proof route with the
    proposed refutation or missing-context route.
 7. Rank the branches by statement-drift risk, number of open prerequisites, and
-   dependency impact. Select exactly one active owner and file target, but keep
-   the remaining materially different branches as queued alternates.
+   dependency impact. Select one active owner **per independent branch** — two
+   branches are independent when their file targets do not overlap — and keep the
+   remaining materially different branches as queued alternates. One owner per
+   file is the ownership rule; **one owner per run is not**, and reading it that
+   way is what turns a ranked list of viable branches into a queue that is walked
+   at one branch per round.
 8. Update `STATUS.md` with the active branch queue, the rejected terminal
    language, and the owner. Do not edit `proof.tex` unless the selected branch
    later receives a passing review packet.
