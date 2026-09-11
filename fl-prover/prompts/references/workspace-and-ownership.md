@@ -108,6 +108,7 @@ commit `target/` when a wave closes.
 | `.claude/state/summaries/wave<N>.md` | `control.py wave` mechanical output, then the Regulator's notes |
 | `.claude/state/statements/*` | `lean.py guard` mechanical output |
 | `.claude/state/reports/*` | the specialist that filed the report |
+| `dag.json`, `STATUS.md`, `dag.mmd` | `dag.py` mechanical output maintained by the Orchestrator |
 | `target/**` | Integrator only |
 | `scratch/formalizer/<task>/*` | Formalizer |
 | `scratch/f-generator/<task>/*` | F-Generator (one task each) |

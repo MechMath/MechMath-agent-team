@@ -1,7 +1,7 @@
 # FL-Prover Orchestration — Operational Reference
 
 This is the operational index for the FL-Prover Orchestrator. The normative
-constraints live in `CLAUDE.md` / `AGENTS.md`; this file is the runnable how-to.
+constraints live in `prompts/normative.md`; this file is the runnable how-to.
 It is also usable as a single-shot run prompt for `scripts/run_claude.py`.
 
 ## Core Contract
@@ -27,6 +27,9 @@ source reference means.
    then add tasks from the user request.
 4. Index the target: `uv run python cli_tools/lean.py index outline <file>` and
    `uv run python cli_tools/memory.py refresh <workspace>`.
+5. Inspect the typed obligation graph with
+   `uv run python cli_tools/dag.py state <workspace>`; use `dag.py put` and
+   `dag.py leaves` for new work rather than reconstructing state from prose.
 
 ## Wave Loop
 
@@ -47,12 +50,17 @@ Repeat until a stop condition holds:
    uv run python cli_tools/lean.py guard  check --workspace WS --task T
    ```
 
+   Convert retained build logs into explicit outcomes with `lean.py verdict`.
    Merge only through the Integrator, and only after all four pass.
-4. `regulator` audits the wave: statement drift, over-broad axioms, duplicate
+4. Before a node becomes `proved`, dispatch `statement-readback` with only the
+   declaration and definitions mentioned by its type. Record its literal
+   reading with `dag.py put --readback`; repeat this after any statement repair.
+5. `regulator` audits the wave: statement drift, over-broad axioms, duplicate
    definitions, missing premises, genuine math gaps.
-5. Update the ledger (`--actor orchestrator`) and write the wave summary:
+6. Update the ledger (`--actor orchestrator`) and write the wave summary:
    `uv run python cli_tools/control.py wave --workspace WS --wave N`.
-6. `uv run python cli_tools/memory.py refresh <workspace>` so the indexes reflect
+7. Render the current graph with `uv run python cli_tools/dag.py render <workspace>`,
+   then run `uv run python cli_tools/memory.py refresh <workspace>` so the indexes reflect
    the new state.
 
 ## Stop Conditions
@@ -83,6 +91,7 @@ Details: `.claude/skills/orchestration/references/stop-conditions.md`.
 | Golfer | `golfer` | Post-gate shortening that must not change proof logic |
 | Regulator | `regulator` | End-of-wave audit; edits nothing |
 | Blueprinter | `blueprinter` | Decomposition plan for a hard or repeatedly failing target |
+| Statement Read-back | `statement-readback` | Context-free literal reading before a node is accepted as proved |
 
 Blueprinter writes plans, never proofs. Open-ended research strategy and
 informal decomposition are out of scope for FL-Prover: this system starts from a

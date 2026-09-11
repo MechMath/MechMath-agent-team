@@ -228,10 +228,12 @@ def write_candidate(
     path = cand_dir / f"{safe}.jsonl"
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(fields, ensure_ascii=False) + "\n")
+    with path.open(encoding="utf-8") as fh:
+        line_count = sum(1 for _ in fh)
     return {
         "ok": True,
         "written": str(path),
-        "lines": sum(1 for _ in path.open(encoding="utf-8")),
+        "lines": line_count,
         "kind": "no_constraint" if fields.get("no_constraint") else fields.get("kind", ""),
     }
 

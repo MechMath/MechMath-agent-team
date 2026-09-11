@@ -42,7 +42,9 @@ F-Reviewer judges statement fidelity against the source before any proof effort;
 F-Generator proves one assigned declaration inside an isolated scratchpad;
 Integrator is the only agent that merges into the master development; Golfer
 shortens an already-passing proof without changing its logic; Regulator audits a
-finished wave for statement drift, duplicate definitions, and unexpected axioms.
+finished wave for statement drift, duplicate definitions, and unexpected axioms;
+Statement Read-back independently states what a Lean declaration literally
+asserts without seeing the source intent or proof narrative.
 
 ## State
 
@@ -55,6 +57,10 @@ uv run python cli_tools/control.py task init --workspace WORKSPACE --actor orche
 
 Create explicit task entries before dispatching, and record each dispatch's
 outcome — a specialist cycle that leaves no ledger trace did not happen.
+Maintain the typed obligation graph with `cli_tools/dag.py`: inspect `state` and
+`leaves`, record node evidence with `put`, and `render` the current `STATUS.md`.
+Before marking a node proved, dispatch `statement-readback` and record its result
+with `dag.py put --readback`; repeat this whenever its statement changes.
 
 ## Skills
 

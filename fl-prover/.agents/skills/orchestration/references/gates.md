@@ -61,3 +61,14 @@ the wrong theorem, because the compiler checks the Lean statement, not its
 correspondence to the source. That correspondence is the F-Reviewer's job, and
 the Regulator re-checks it at wave close against the reference the target came
 from.
+
+Before a node is accepted as proved, a fresh `statement-readback` agent receives
+only the declaration and definitions named by its type. Record its literal
+reading in the typed node store with `dag.py put --readback`. This is distinct
+from F-Review: the reviewer compares code with the source, while read-back checks
+what the code says without being primed by the intended theorem.
+
+For retained build output, `lean.py verdict read` converts the log into an
+explicit `PASS`, `FAIL`, or `STALL`; `lean.py verdict audit` records an
+independent rerun. These commands audit the evidence for a build claim and do
+not replace the four merge gates.

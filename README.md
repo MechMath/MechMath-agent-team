@@ -117,7 +117,7 @@ then:
 3. permanently removes the template repository's root Git metadata and history,
    without creating a backup;
 4. initializes a new repository on the `main` branch;
-5. creates any missing shared-data directories; and
+5. creates any missing shared-data directories;
 6. writes `.mmat-initialized` to prevent accidental repeated detachment; and
 7. stages the initial project files without committing, adding a remote, or
    pushing.
@@ -185,6 +185,11 @@ It presents the following sessions:
 5. FL-Prover via Claude Code; and
 6. contextual help.
 
+When option 4 is selected, the launcher asks for a problem ID and exports the
+corresponding `NLPROVER_WORKSPACE`. This is required by NL-Prover's Claude hooks
+to attribute dispatch records to the correct problem. If the variable is already
+set, it must name an existing directory under `data/workspace/`.
+
 Additional arguments are forwarded unchanged to the selected CLI. For example,
 to enable web search in a Codex session:
 
@@ -220,6 +225,22 @@ access to the complete shared-data tree:
 ```bash
 codex -C kb-manager --add-dir "$DATA_DIR"
 ```
+
+For a manual NL-Prover Claude Code launch, create and export the active problem
+workspace before starting from the component directory:
+
+```bash
+problem_id=my-problem
+mkdir -p "$DATA_DIR/workspace/$problem_id"
+export NLPROVER_WORKSPACE="$DATA_DIR/workspace/$problem_id"
+cd nl-prover
+claude --add-dir "$DATA_DIR/workspace" --add-dir "$DATA_DIR/inbox"
+```
+
+Launching from `nl-prover/` is significant: that is where Claude Code loads the
+project allowlist and the dispatch/nesting hooks. FL-Prover's Claude session has
+the same launch-directory requirement, but does not require
+`NLPROVER_WORKSPACE`.
 
 ## Shared Research Data
 
@@ -277,6 +298,13 @@ The workflow is designed as a generation--verification--revision loop. Failed
 routes and transferable constraints are retained as research memory rather than
 discarded as transient conversation state.
 
+The current harness also separates discovery output from certification: only a
+single fresh Verifier packet can give a proof artifact mathematical weight.
+Mechanical gates now report dependency-DAG health, dispatch cost, contract drift,
+discovery bookkeeping, and the required human-facing progress summary. Every
+stop writes memory back and leaves either the verified result or both
+`progress_notes.pdf` and the shorter `progress_summary.pdf`.
+
 ### Lean 4 Formalization
 
 Launch FL-Prover with a mathematical statement, its source, and the target Lean
@@ -289,8 +317,13 @@ relevant deterministic gates have passed:
 4. the protected theorem statement is unchanged.
 
 Because compilation establishes correctness only relative to the encoded Lean
-statement, a separate Formal Reviewer evaluates semantic fidelity between the
-formal statement and its mathematical source.
+statement, a Formal Reviewer evaluates semantic fidelity against the source. A
+separate blind `statement-readback` agent receives only the Lean declaration and
+its referenced definitions, then spells out its literal quantifiers, bounds,
+pointwise/aggregate meaning, and possible vacuity before the node is accepted as
+proved. FL-Prover's typed DAG records dependencies, candidates, build verdicts,
+`sorry` counts, and these read-backs; `lean.py verdict` distinguishes traceable
+build outcomes from missing or incomplete logs.
 
 ### Long-Term Knowledge Transfer
 
@@ -299,6 +332,32 @@ identified obstructions may be handed to KB-Manager through `data/inbox/`.
 KB-Manager compiles these outputs into an indexed mathematical card graph, so
 that later investigations can retrieve both established results and previously
 discovered constraints.
+
+## Update Log
+
+### 2026-09-11 — FL-Prover and NL-Prover refresh
+
+- FL-Prover now keeps shared normative rules in `prompts/normative.md`, adds a
+  blind statement-readback role, a typed proof-obligation DAG, and auditable
+  build verdicts. Its facade tests now check imports, exit-code propagation,
+  Lean inspection behavior, suite shape, and the normative single source.
+- NL-Prover adds explicit discovery/certification modes, producer-side cold
+  verification dispatch, contract/discovery/DAG/speed/summary gates, typed
+  workspace status, compute-budget and proof-audit skills, and mandatory compact
+  progress summaries at non-proof stops.
+- Claude Code dispatch logging and nesting enforcement are now wired through
+  component-local hooks. NL-Prover Claude sessions must start from
+  `nl-prover/` with `NLPROVER_WORKSPACE` set; the unified launcher handles this
+  by asking for the active problem ID.
+- Template cleanup removes generated logs, obsolete directory placeholders,
+  and prover scratch artifacts from version control. FL-Prover's standalone
+  runner scripts again accept caller-supplied targets and options through `uv`.
+
+After pulling this update, run `uv sync --all-packages`. Existing NL-Prover
+workspaces should be checked with `workspace.py status` and the new structural
+gates before resuming; existing FL-Prover ledgers can be audited with
+`dag.py import --from <proof_tasks.json>` (the import command reports issues and
+does not migrate or modify the ledger).
 
 ## Scientific Context
 

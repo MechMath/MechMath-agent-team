@@ -48,6 +48,8 @@ print_help() {
   echo
   echo "NL-Prover and FL-Prover both provide Codex and Claude Code harnesses over"
   echo "the same prompts, deterministic tools, and shared skills."
+  echo "For NL-Prover via Claude Code, the launcher asks for a problem ID so its"
+  echo "dispatch hooks can write to the correct problem workspace."
   echo
   echo "Arguments passed to ./start.sh are forwarded to the selected CLI."
   echo "Exit the active CLI, then run ./start.sh again to switch components."
@@ -76,10 +78,40 @@ launch_codex() {
 
 launch_claude() {
   local agent_dir="$1"
+  local problem_id
+  local resolved_nl_workspace
+  local workspace_root
   shift
 
   require_command claude
   require_directory "$agent_dir"
+
+  if [ "$(basename "$agent_dir")" = "nl-prover" ]; then
+    if [ -z "${NLPROVER_WORKSPACE:-}" ]; then
+      echo
+      echo "NL-Prover's Claude hooks need the active problem workspace."
+      echo "Enter a problem ID (a directory under data/workspace)."
+      read -r -p "Problem ID: " problem_id
+      [ -n "$problem_id" ] || die "A problem ID is required for NL-Prover via Claude Code."
+      case "$problem_id" in
+        */*|.|..)
+          die "Problem ID must be a directory name, not a path: $problem_id"
+          ;;
+      esac
+      export NLPROVER_WORKSPACE="$DATA_DIR/workspace/$problem_id"
+      mkdir -p "$NLPROVER_WORKSPACE"
+    else
+      require_directory "$NLPROVER_WORKSPACE"
+    fi
+    workspace_root="$(cd "$DATA_DIR/workspace" && pwd)"
+    resolved_nl_workspace="$(cd "$NLPROVER_WORKSPACE" && pwd)"
+    case "$resolved_nl_workspace/" in
+      "$workspace_root/"*) ;;
+      *) die "NLPROVER_WORKSPACE must be under $workspace_root" ;;
+    esac
+    export NLPROVER_WORKSPACE="$resolved_nl_workspace"
+    echo "Dispatch log workspace: $NLPROVER_WORKSPACE"
+  fi
 
   # `--version` catches incomplete installations where a wrapper exists but
   # the platform-specific Claude Code binary is missing.
